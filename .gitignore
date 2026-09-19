@@ -67,3 +67,14 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# Môi trường lập trình
+.vscode/
+.vs/
+.idea/
+
+# File biên dịch và thực thi cục bộ
+build/
+bin/
+*.exe
+*.out
