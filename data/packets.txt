@@ -1,0 +1,9 @@
+# Cấu trúc: id src dest size type protocol canFragment newConnection
+# canFragment và newConnection: 1 là true, 0 là false
+
+0 0 3 500 REAL_TIME UDP 0 0
+1 0 3 3000 BULK_DATA TCP 1 1
+
+# --- Test Validation ---
+# Packet có kích thước âm (sẽ bị REJECT)
+2 0 3 -100 CONTROL TCP 0 0
