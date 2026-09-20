@@ -1,0 +1,15 @@
+# Cấu trúc: id u v media length bw maxSeg price terrain equip maint mtu load delay
+
+0 0 1 COPPER 100 1000 100 2.5 1.0 500 10 1500 0.1 0.002
+1 1 2 FIBER  500 10000 2000 5.0 1.2 1000 20 1500 0.5 0.001
+2 2 3 COPPER 50  1000 100 2.5 1.0 500 10 1500 0.2 0.002
+
+# --- Test Validation ---
+# Edge tham chiếu đến Node 9 không tồn tại (sẽ bị REJECT)
+3 1 9 COPPER 100 1000 100 2.5 1.0 500 10 1500 0.1 0.002
+
+# Edge có bandwidth âm (sẽ bị REJECT)
+4 1 2 FIBER  500 -10 2000 5.0 1.2 1000 20 1500 0.5 0.001
+
+# Edge có load > 1 (sẽ bị REJECT)
+5 1 2 FIBER  500 10000 2000 5.0 1.2 1000 20 1500 1.5 0.001

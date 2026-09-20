@@ -1,0 +1,11 @@
+# Cấu trúc: id name type totalPorts processingTime
+# Dòng trống và comment (bắt đầu bằng #) sẽ bị bỏ qua
+
+0 H1 HOST 1 0.001
+1 R1 ROUTER 4 0.005
+2 R2 ROUTER 4 0.005
+3 H2 HOST 1 0.001
+
+# --- Test Validation ---
+# Node ID 4 có số lượng port âm (sẽ bị REJECT)
+4 INV ROUTER -1 0.005
