@@ -1,5 +1,58 @@
 # PBL2
 
+# Network Simulator
+## Phân công nhiệm vụ chi tiết 6 tuần – 2 thành viên – C++17
+
+> **Mục tiêu:** Xây dựng Network Simulator sử dụng **Kruskal** cho giai đoạn xây dựng hạ tầng và **Dijkstra** cho giai đoạn tìm đường khi mạng vận hành.
+>
+> **Phân công chính:**
+> - **Bạn A:** nghiêng về thuật toán, Graph, DSU, Kruskal, Dijkstra, Reliability và kiểm tra tính đúng đắn.
+> - **Bạn B:** nghiêng về mô hình mạng, CostModel, I/O, Validation, Simulation, Scenario, Reporter và dữ liệu.
+>
+> **Nguyên tắc quan trọng:** Hai bạn không tự định nghĩa lại `Node`, `Edge`, `Packet`. Struct lõi và API phải được thống nhất trước khi code song song.
+
+---
+
+# 1. Mục tiêu của dự án
+
+Chương trình mô phỏng một hệ thống mạng theo 3 giai đoạn:
+
+```text
+1. XÂY DỰNG HẠ TẦNG
+Topology + Physical Constraints
+        ↓
+Cabling Cost
+        ↓
+Kruskal + DSU
+        ↓
+MST + Backup Links
+
+2. CHUẨN BỊ TRUYỀN
+Packet
+        ↓
+Network Snapshot
+
+3. TÌM ĐƯỜNG + MÔ PHỎNG
+Dijkstra
+        ↓
+Path
+        ↓
+Transmission
+        ↓
+Update Load
+
+4. SỰ KIỆN
+LOAD_UPDATE / DELAY_UPDATE / LINK_DOWN / LINK_UP
+        ↓
+Reroute
+        ↓
+Report
+```
+
+Kruskal xử lý **chi phí xây dựng**; Dijkstra xử lý **chi phí truyền tin động**. Hai loại chi phí không cộng trực tiếp vì khác đơn vị: chi phí xây dựng dùng ĐV, còn routing cost dùng giây.
+
+---
+
 # 2. Cấu trúc thư mục dự án
 
 ```text
@@ -81,6 +134,214 @@ PBL2/
 ├── main.cpp
 └── README.md
 ```
+
+### Quy tắc khu vực
+
+| Khu vực | Chứa | Không chứa |
+|---|---|---|
+| `include/` | struct, enum, class, API, `constexpr` | thân thuật toán dài, đọc file, menu |
+| `src/` | implementation, công thức, thuật toán, validation | menu nhập liệu |
+| `data/` | node, edge, packet, scenario | C++ code |
+| `tests/` | test module + test data | logic production |
+| `docs/` | sơ đồ, công thức, kết quả, báo cáo | code production |
+| `main.cpp` | khởi tạo + gọi module + menu | thuật toán lõi, công thức |
+
+---
+
+# 3. Các struct và API dùng chung
+
+## 3.1. `Types.h`
+
+```cpp
+enum class NodeType {
+    ROUTER,
+    SWITCH,
+    HOST
+};
+
+enum class MediaType {
+    COPPER,
+    FIBER
+};
+
+enum class Protocol {
+    TCP,
+    UDP
+};
+
+enum class PacketType {
+    REAL_TIME,
+    BULK_DATA,
+    CONTROL
+};
+
+enum class EventType {
+    LINK_DOWN,
+    LINK_UP,
+    LOAD_UPDATE,
+    DELAY_UPDATE
+};
+
+enum class ForwardingState {
+    FORWARDING,
+    BLOCKING,
+    DOWN
+};
+```
+
+## 3.2. `Node`
+
+```cpp
+struct Node {
+    int id;
+    NodeType type;
+    int totalPorts;
+    int usedPorts = 0;
+    double processingTime;
+    double deviceCost;
+};
+```
+
+## 3.3. `Edge`
+
+```cpp
+struct Edge {
+    int id;
+    int u;
+    int v;
+
+    bool isUp = true;
+    bool isBuilt = false;
+    bool isBackup = false;
+
+    double length;
+    MediaType media;
+
+    double bandwidthMbps;
+    double currentLoad;
+    double queueDelay;
+
+    int mtu;
+    double propagationSpeed;
+
+    double maxSegmentLength;
+    double terrainFactor;
+
+    double unitPrice;
+    double installationCost;
+    double equipmentCost;
+    double maintenanceCost;
+};
+```
+
+## 3.4. `Packet`
+
+```cpp
+struct Packet {
+    int id;
+    int source;
+    int destination;
+    int sizeBytes;
+
+    Protocol protocol;
+    bool newConnection;
+    bool canFragment;
+
+    PacketType qosType;
+};
+```
+
+## 3.5. `PathResult`
+
+```cpp
+struct PathResult {
+    bool reachable = false;
+    vector<int> nodes;
+    vector<int> edges;
+
+    double totalCost = 0.0;
+    int hopCount = 0;
+};
+```
+
+## 3.6. `MSTResult`
+
+```cpp
+struct MSTResult {
+    vector<int> edgeIds;
+    double totalCost = 0.0;
+    bool connected = false;
+};
+```
+
+---
+
+# 4. Data contract
+
+## `nodes.csv`
+
+```text
+id,type,totalPorts,processingTime,deviceCost
+0,ROUTER,4,0.00010,500
+1,ROUTER,4,0.00012,500
+4,HOST,1,0.00000,0
+```
+
+## `edges.csv`
+
+```text
+id,u,v,up,length,media,bandwidthMbps,currentLoad,queueDelay,mtu,propagationSpeed,maxSegmentLength,terrainFactor,unitPrice,installationCost,equipmentCost,maintenanceCost
+```
+
+## `packets.csv`
+
+```text
+id,source,destination,sizeBytes,protocol,newConnection,canFragment,qosType
+```
+
+## `scenarios/*.csv`
+
+```text
+scenario,eventType,targetId,value,time
+```
+
+Ví dụ:
+
+```text
+F1,LINK_DOWN,0,0,10.0
+C1,LOAD_UPDATE,0,0.95,15.0
+```
+
+---
+
+# 5. Quy tắc làm việc chung
+
+## Nguyên tắc 1 – Chốt contract trước khi code
+
+Trong 1–2 ngày đầu:
+
+- [ ] Cùng thống nhất `Types.h`
+- [ ] Cùng thống nhất `Node.h`
+- [ ] Cùng thống nhất `Edge.h`
+- [ ] Cùng thống nhất `Packet.h`
+- [ ] Cùng thống nhất `Config.h`
+- [ ] Cùng thống nhất format CSV
+- [ ] Cùng vẽ mạng mẫu 6–8 node
+- [ ] Cùng tính tay MST
+- [ ] Cùng tính tay một route
+- [ ] Cùng thống nhất đáp án chuẩn để test
+
+## Nguyên tắc 2 – Không tự định nghĩa lại struct
+
+```text
+KHÔNG:
+A tạo Edge riêng
+B tạo Edge riêng
+
+ĐÚNG:
+Cả hai dùng include/Edge.h
+```
+
 ## Nguyên tắc 3 – Mỗi task phải có test
 
 ```text
@@ -94,18 +355,22 @@ Review chéo
   ↓
 Merge
 ```
+
 ---
+
 # 6. TUẦN 1 – KHUNG + DATA + GRAPH + VALIDATION
 
 ## 🎯 Mục tiêu tuần
 
-- [ ] Load được `nodes.txt`
-- [ ] Load được `edges.txt`
-- [ ] Load được `packets.txt`
+- [ ] Load được `nodes.csv`
+- [ ] Load được `edges.csv`
+- [ ] Load được `packets.csv`
 - [ ] Validation hoạt động
 - [ ] Graph + adjacency hoạt động
 - [ ] Struct lõi và API được chốt
+
 ---
+
 # 6.1. CẢ HAI – NGÀY 1–2
 
 ## Task 1.1 – Chốt glossary và số liệu mẫu
@@ -147,20 +412,28 @@ delay      → second
 - [ ] Ghi MTU
 - [ ] Tính tay MST
 - [ ] Tính tay route
+
 ### Kiểm tra
+
 - [ ] Có đáp án chuẩn để cuối tuần 2–3 đối chiếu
 - [ ] Có thể giải thích vì sao cạnh được chọn/bị loại
+
 ---
+
 ## Task 1.3 – Tạo repository
+
 - [ ] Tạo Git repository
 - [ ] Tạo branch `develop`
 - [ ] Tạo branch riêng cho A
 - [ ] Tạo branch riêng cho B
 - [ ] Tạo khung thư mục
+
 ---
 
 ## Task 1.4 – Chốt struct
+
 Cả hai cùng viết và review:
+
 ```text
 Types.h
 Node.h
@@ -168,11 +441,15 @@ Edge.h
 Packet.h
 Config.h
 ```
+
 ### Kiểm tra
+
 - [ ] Không duplicate struct
 - [ ] Cả A/B compile cùng API
 - [ ] Không tự thêm field làm thay đổi contract mà chưa thống nhất
---
+
+---
+
 # 6.2. 👨‍💻 BẠN A – TUẦN 1
 
 ## Task A1.1 – Xây Graph
@@ -2220,6 +2497,7 @@ FINAL DEMO
 # 19. SIGN-OFF HÀNG TUẦN
 
 | Tuần | Bạn A | Bạn B | Integration | Tag |
+|---|---|---|---|---|
 | Week 1 | [ ] | [ ] | [ ] | `week1-done` |
 | Week 2 | [ ] | [ ] | [ ] | `week2-done` |
 | Week 3 | [ ] | [ ] | [ ] | `week3-done` |
@@ -2230,3 +2508,6 @@ FINAL DEMO
 ---
 
 # END
+
+**PBL2 – Network Simulator**  
+**C++17 · 2 thành viên · 6 tuần**
