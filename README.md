@@ -54,15 +54,15 @@ PBL2/
 │   └── Reporter.cpp
 │
 ├── data/
-│   ├── nodes.csv
-│   ├── edges.csv
-│   ├── packets.csv
+│   ├── nodes.txt
+│   ├── edges.txt
+│   ├── packets.txt
 │   └── scenarios/
-│       ├── basic.csv
-│       ├── congestion.csv
-│       ├── failure.csv
-│       ├── qos.csv
-│       └── mtu.csv
+│       ├── basic.txt
+│       ├── congestion.txt
+│       ├── failure.txt
+│       ├── qos.txt
+│       └── mtu.txt
 │
 ├── tests/
 │   ├── test_graph/
@@ -154,8 +154,8 @@ delay      → second
 ## Task 1.3 – Tạo repository
 - [ ] Tạo Git repository
 - [ ] Tạo branch `develop`
-- [ ] Tạo branch riêng cho A
-- [ ] Tạo branch riêng cho B
+- [ ] Tạo branch riêng cho Quyến
+- [ ] Tạo branch riêng cho Ý
 - [ ] Tạo khung thư mục
 ---
 
@@ -170,10 +170,10 @@ Config.h
 ```
 ### Kiểm tra
 - [ ] Không duplicate struct
-- [ ] Cả A/B compile cùng API
+- [ ] Cả Quyến/Ý compile cùng API
 - [ ] Không tự thêm field làm thay đổi contract mà chưa thống nhất
 --
-# 6.2. 👨‍💻 BẠN A – TUẦN 1
+# 6.2. 👨‍💻 QUYẾN – TUẦN 1
 
 ## Task A1.1 – Xây Graph
 
@@ -276,7 +276,7 @@ Tạo data cho:
 
 ---
 
-# 6.3. 🕵️ BẠN B – TUẦN 1
+# 6.3. 🕵️ Ý – TUẦN 1
 
 ## Task B1.1 – IOManager
 
@@ -298,7 +298,7 @@ isSkippableLine()
 
 ### Việc cần làm
 
-- [ ] Mở CSV
+- [ ] Mở TXT
 - [ ] Bỏ dòng trống
 - [ ] Bỏ comment `#`
 - [ ] Tách field
@@ -383,7 +383,7 @@ Không chỉ trả `false` mà không biết vì sao khi đang debug/test.
 
 # 6.4. ✅ CHECKPOINT CUỐI TUẦN 1
 
-## Bạn A
+## Quyến
 
 - [ ] Graph compile
 - [ ] Add/get hoạt động
@@ -391,7 +391,7 @@ Không chỉ trả `false` mà không biết vì sao khi đang debug/test.
 - [ ] DSU API tồn tại
 - [ ] Dataset mẫu có sẵn
 
-## Bạn B
+## Ý
 
 - [ ] Parser hoạt động
 - [ ] Validation hoạt động
@@ -431,7 +431,7 @@ Backup links
 
 ---
 
-# 7.1. 👨‍💻 BẠN A – TUẦN 2
+# 7.1. 👨‍💻 QUYẾN – TUẦN 2
 
 ## Task A2.1 – Hoàn thiện DSU
 
@@ -572,7 +572,7 @@ Với mỗi tree edge:
 
 ---
 
-# 7.2. 🕵️ BẠN B – TUẦN 2
+# 7.2. 🕵️ Ý – TUẦN 2
 
 ## Task B2.1 – `CostBreakdown`
 
@@ -698,7 +698,7 @@ MST + Backup
 
 # 7.3. ✅ CHECKPOINT TUẦN 2
 
-## Bạn A
+## Quyến
 
 - [ ] DSU
 - [ ] Kruskal
@@ -707,7 +707,7 @@ MST + Backup
 - [ ] `buildMST`
 - [ ] Backup
 
-## Bạn B
+## Ý
 
 - [ ] CostBreakdown
 - [ ] CablingCost
@@ -760,7 +760,7 @@ Delay / MTU / TCP / UDP
 
 ---
 
-# 8.1. 👨‍💻 BẠN A – TUẦN 3
+# 8.1. 👨‍💻 QUYẾN – TUẦN 3
 
 ## Task A3.1 – `PathResult`
 
@@ -877,7 +877,7 @@ Không được ngược chiều.
 
 ---
 
-# 8.2. 🕵️ BẠN B – TUẦN 3
+# 8.2. 🕵️ Ý – TUẦN 3
 
 ## Task B3.1 – Transmission Delay
 
@@ -1036,7 +1036,7 @@ newConnection = true
 
 # 8.3. ✅ CHECKPOINT TUẦN 3
 
-## Bạn A
+## Quyến
 
 - [ ] Dijkstra
 - [ ] Min heap
@@ -1045,7 +1045,7 @@ newConnection = true
 - [ ] ParentEdge
 - [ ] Reconstruct path
 
-## Bạn B
+## Ý
 
 - [ ] Transmission
 - [ ] Propagation
@@ -1094,7 +1094,7 @@ Route có thể đổi
 
 ---
 
-# 9.1. 👨‍💻 BẠN A – TUẦN 4
+# 9.1. 👨‍💻 QUYẾN – TUẦN 4
 
 ## Task A4.1 – Congestion penalty
 
@@ -1199,7 +1199,7 @@ Delay
 
 ---
 
-# 9.2. 🕵️ BẠN B – TUẦN 4
+# 9.2. 🕵️ Ý – TUẦN 4
 
 ## Task B4.1 – NetworkSnapshot
 
@@ -1311,9 +1311,9 @@ currentLoad *= LOAD_DECAY
 Tạo:
 
 ```text
-congestion.csv
-qos.csv
-mtu.csv
+congestion.txt
+qos.txt
+mtu.txt
 ```
 
 ### Kiểm tra
@@ -1325,14 +1325,14 @@ mtu.csv
 
 # 9.3. ✅ CHECKPOINT TUẦN 4
 
-## Bạn A
+## Quyến
 
 - [ ] Congestion
 - [ ] QoS
 - [ ] Dynamic routing cost
 - [ ] Dijkstra integration
 
-## Bạn B
+## Ý
 
 - [ ] Snapshot
 - [ ] Scenario
@@ -1389,7 +1389,7 @@ STP là **phần mở rộng**, không phải phần lõi bắt buộc nếu ti�
 
 ---
 
-# 10.1. 👨‍💻 BẠN A – TUẦN 5
+# 10.1. 👨‍💻 QUYẾN – TUẦN 5
 
 ## Task A5.1 – `setLinkState()`
 
@@ -1480,9 +1480,9 @@ MST + backup
 
 ---
 
-# 10.2. 🕵️ BẠN B – TUẦN 5
+# 10.2. 🕵️ Ý – TUẦN 5
 
-## Task B5.1 – `failure.csv`
+## Task B5.1 – `failure.txt`
 
 ### Tạo case
 
@@ -1575,7 +1575,7 @@ backup
 
 # 10.3. ✅ CHECKPOINT TUẦN 5
 
-## Bạn A
+## Quyến
 
 - [ ] Link state
 - [ ] Connectivity
@@ -1583,7 +1583,7 @@ backup
 - [ ] Failure handler
 - [ ] Reliability metric
 
-## Bạn B
+## Ý
 
 - [ ] Failure scenario
 - [ ] Backup analysis
@@ -1643,7 +1643,7 @@ Release Candidate
 
 ---
 
-# 11.1. 👨‍💻 BẠN A – TUẦN 6
+# 11.1. 👨‍💻 QUYẾN – TUẦN 6
 
 ## Task A6.1 – Benchmark Kruskal
 
@@ -1730,7 +1730,7 @@ O((V + E) log V)
 
 ---
 
-# 11.2. 🕵️ BẠN B – TUẦN 6
+# 11.2. 🕵️ Ý – TUẦN 6
 
 ## Task B6.1 – `main.cpp`
 
@@ -1815,7 +1815,6 @@ Xuất:
 
 ```text
 .txt
-.csv
 ```
 
 ### Log
@@ -1896,14 +1895,14 @@ T01 → T20
 
 ## Tập bảo vệ
 
-### Bạn A phải hiểu
+### Quyến phải hiểu
 
 - [ ] IOManager
 - [ ] CostModel
 - [ ] Snapshot
 - [ ] Simulator
 
-### Bạn B phải hiểu
+### Ý phải hiểu
 
 - [ ] DSU
 - [ ] Kruskal
@@ -1919,80 +1918,80 @@ T01 → T20
 
 | Test | Người | Pass condition |
 |---|---|---|
-| Graph add/get | A | Node/edge đúng |
-| Adjacency | A | `sum(adj)=2E` |
-| DSU cơ bản | A | Component đúng |
-| Parser | B | CSV load đúng |
-| Enum mapping | B | Mapping đúng |
-| Invalid data | B | Reject + lý do |
-| Full load | A+B | Main load 3 file không crash |
+| Graph add/get | Quyến | Node/edge đúng |
+| Adjacency | Quyến | `sum(adj)=2E` |
+| DSU cơ bản | Quyến | Component đúng |
+| Parser | Ý | TXT load đúng |
+| Enum mapping | Ý | Mapping đúng |
+| Invalid data | Ý | Reject + lý do |
+| Full load | Quyến+Ý | Main load 3 file không crash |
 
 ## Tuần 2
 
 | Test | Người | Pass condition |
 |---|---|---|
-| DSU | A | Root đúng |
-| Kruskal | A | `V-1`, connected |
-| Tie-breaker | A | Deterministic |
-| Backup | A | Có đường dự phòng |
-| CablingCost | B | Khớp tính tay |
-| Terrain | B | Terrain ↑ → cost ↑ |
-| Port | A+B | Không vượt port |
-| Reporter | B | Output đúng |
+| DSU | Quyến | Root đúng |
+| Kruskal | Quyến | `V-1`, connected |
+| Tie-breaker | Quyến | Deterministic |
+| Backup | Quyến | Có đường dự phòng |
+| CablingCost | Ý | Khớp tính tay |
+| Terrain | Ý | Terrain ↑ → cost ↑ |
+| Port | Quyến+Ý | Không vượt port |
+| Reporter | Ý | Output đúng |
 
 ## Tuần 3
 
 | Test | Người | Pass condition |
 |---|---|---|
-| Dijkstra | A | Route đúng |
-| Parent | A | Path reconstruction đúng |
-| Transmission | B | Formula đúng |
-| Propagation | B | Formula đúng |
-| Processing | B | Next node đúng |
-| Queue | B | Queue đúng |
-| MTU | B | DF block đúng |
-| Fragment | B | Count đúng |
-| TCP | B | RTT overhead |
-| UDP | B | Không setup |
+| Dijkstra | Quyến | Route đúng |
+| Parent | Quyến | Path reconstruction đúng |
+| Transmission | Ý | Formula đúng |
+| Propagation | Ý | Formula đúng |
+| Processing | Ý | Next node đúng |
+| Queue | Ý | Queue đúng |
+| MTU | Ý | DF block đúng |
+| Fragment | Ý | Count đúng |
+| TCP | Ý | RTT overhead |
+| UDP | Ý | Không setup |
 
 ## Tuần 4
 
 | Test | Người | Pass condition |
 |---|---|---|
-| Congestion | A | Penalty tăng |
-| QoS | A | Policy khác |
-| Routing cost | A | Cost đúng |
-| Snapshot | B | State ổn định |
-| Event | B | Apply đúng |
-| Load update | B | Load thay đổi |
-| Scenario | B | CSV chạy |
-| Dynamic route | A+B | Route có thể đổi |
+| Congestion | Quyến | Penalty tăng |
+| QoS | Quyến | Policy khác |
+| Routing cost | Quyến | Cost đúng |
+| Snapshot | Ý | State ổn định |
+| Event | Ý | Apply đúng |
+| Load update | Ý | Load thay đổi |
+| Scenario | Ý | TXT chạy |
+| Dynamic route | Quyến+Ý | Route có thể đổi |
 
 ## Tuần 5
 
 | Test | Người | Pass condition |
 |---|---|---|
-| Link down | A | `isUp=false` |
-| Connectivity | A | BFS/DFS đúng |
-| Reroute | A | Broken path có route mới |
-| Fault metric | A | Có số liệu |
-| Failure CSV | B | Scenario chạy |
-| Backup analysis | B | Backup hợp lệ |
-| Failure report | B | Old/New path |
-| STP | B | Blocking/Forwarding |
+| Link down | Quyến | `isUp=false` |
+| Connectivity | Quyến | BFS/DFS đúng |
+| Reroute | Quyến | Broken path có route mới |
+| Fault metric | Quyến | Có số liệu |
+| Failure TXT | Ý | Scenario chạy |
+| Backup analysis | Ý | Backup hợp lệ |
+| Failure report | Ý | Old/New path |
+| STP | Ý | Blocking/Forwarding |
 
 ## Tuần 6
 
 | Test | Người | Pass condition |
 |---|---|---|
-| Benchmark | A | Runtime recorded |
-| Correctness | A | Invariants pass |
-| Edge cases | A | Không crash |
-| Main | B | Orchestration only |
-| Reporter | B | Output rõ |
-| 6 datasets | B | Đủ demo |
-| Log | B | TXT/CSV |
-| Regression | A+B | T01–T20 pass |
+| Benchmark | Quyến | Runtime recorded |
+| Correctness | Quyến | Invariants pass |
+| Edge cases | Quyến | Không crash |
+| Main | Ý | Orchestration only |
+| Reporter | Ý | Output rõ |
+| 6 datasets | Ý | Đủ demo |
+| Log | Ý | TXT |
+| Regression | Quyến+Ý | T01–T20 pass |
 
 ---
 
@@ -2017,7 +2016,7 @@ T01 → T20
 | T15 | Disconnected | No route → DROP |
 | T16 | Backup | Backup restore path |
 | T17 | STP | Redundant edge BLOCKING |
-| T18 | Scenario | CSV event apply |
+| T18 | Scenario | TXT event apply |
 | T19 | Performance | Runtime recorded |
 | T20 | Regression | Test cũ vẫn pass |
 
@@ -2025,7 +2024,7 @@ T01 → T20
 
 # 14. CHECKLIST "ĐÚNG / SAI" TRƯỚC KHI MERGE
 
-## 👨‍💻 Bạn A
+## 👨‍💻 Quyến
 
 ### Tôi phải trả lời được
 
@@ -2046,7 +2045,7 @@ T01 → T20
 
 ---
 
-## 🕵️ Bạn B
+## 🕵️ Ý
 
 ### Tôi phải trả lời được
 
@@ -2092,8 +2091,8 @@ commit nhỏ
 ## Giữa tuần
 
 ```text
-A review B
-B review A
+Quyến review Ý
+Ý review Quyến
 ```
 
 ## Cuối tuần
@@ -2166,7 +2165,7 @@ docs: update week 4 design
 - [ ] Reroute
 - [ ] Fault-tolerance metric
 - [ ] 6 demo scenarios
-- [ ] TXT/CSV logging
+- [ ] TXT logging
 - [ ] Regression
 - [ ] Benchmark
 - [ ] Report
@@ -2179,38 +2178,38 @@ docs: update week 4 design
 
 ```text
 WEEK 1
-A → Graph + DSU
-B → IO + Validation
+Quyến → Graph + DSU
+Ý → IO + Validation
         ↓
 Topology chạy được
 
 WEEK 2
-A → DSU + Kruskal + Backup
-B → Cost + Constraint + Report
+Quyến → DSU + Kruskal + Backup
+Ý → Cost + Constraint + Report
         ↓
 MST + Backup
 
 WEEK 3
-A → Dijkstra + Path
-B → Delay + MTU + TCP/UDP
+Quyến → Dijkstra + Path
+Ý → Delay + MTU + TCP/UDP
         ↓
 Route chạy được
 
 WEEK 4
-A → QoS + Congestion + Dynamic Cost
-B → Snapshot + Simulation + Scenario
+Quyến → QoS + Congestion + Dynamic Cost
+Ý → Snapshot + Simulation + Scenario
         ↓
 Dynamic Routing
 
 WEEK 5
-A → Failure + Reroute + Reliability
-B → Failure Scenario + Backup Analysis + STP
+Quyến → Failure + Reroute + Reliability
+Ý → Failure Scenario + Backup Analysis + STP
         ↓
 Fault Tolerance
 
 WEEK 6
-A → Benchmark + Correctness + Regression
-B → Main + Reporter + Dataset + Docs
+Quyến → Benchmark + Correctness + Regression
+Ý → Main + Reporter + Dataset + Docs
         ↓
 FINAL DEMO
 ```
@@ -2219,7 +2218,7 @@ FINAL DEMO
 
 # 19. SIGN-OFF HÀNG TUẦN
 
-| Tuần | Bạn A | Bạn B | Integration | Tag |
+| Tuần | Quyến | Ý | Integration | Tag |
 | Week 1 | [ ] | [ ] | [ ] | `week1-done` |
 | Week 2 | [ ] | [ ] | [ ] | `week2-done` |
 | Week 3 | [ ] | [ ] | [ ] | `week3-done` |
