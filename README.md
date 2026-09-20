@@ -298,20 +298,20 @@ isSkippableLine()
 
 ### Việc cần làm
 
-- [ ] Mở TXT
-- [ ] Bỏ dòng trống
-- [ ] Bỏ comment `#`
-- [ ] Tách field
-- [ ] Convert string → enum
-- [ ] Tạo Node/Edge/Packet
-- [ ] Gửi dữ liệu vào Graph
+- [x] Mở TXT
+- [x] Bỏ dòng trống
+- [x] Bỏ comment `#`
+- [x] Tách field
+- [x] Convert string → enum
+- [x] Tạo Node/Edge/Packet
+- [x] Gửi dữ liệu vào Graph
 
 ### Kiểm tra
 
-- [ ] File hợp lệ đọc được
-- [ ] Comment bị bỏ qua
-- [ ] Dòng trống không crash
-- [ ] Sai format được báo rõ
+- [x] File hợp lệ đọc được
+- [x] Comment bị bỏ qua
+- [x] Dòng trống không crash
+- [x] Sai format được báo rõ
 
 ---
 
@@ -335,9 +335,9 @@ FIBER  → MediaType::FIBER
 TCP    → Protocol::TCP
 ```
 
-- [ ] Mapping đúng
-- [ ] Không nhầm media
-- [ ] Không nhầm protocol
+- [x] Mapping đúng
+- [x] Không nhầm media
+- [x] Không nhầm protocol
 
 ---
 
@@ -360,14 +360,14 @@ isValidPacket()
 
 ### Phải reject
 
-- [ ] Node không hợp lệ
-- [ ] Edge tham chiếu node không tồn tại
-- [ ] `bandwidthMbps <= 0`
-- [ ] `mtu <= 0`
-- [ ] `currentLoad < 0`
-- [ ] `currentLoad > 1`
-- [ ] `totalPorts < 0`
-- [ ] `sizeBytes < 0`
+- [x] Node không hợp lệ
+- [x] Edge tham chiếu node không tồn tại
+- [x] `bandwidthMbps <= 0`
+- [x] `mtu <= 0`
+- [x] `currentLoad < 0`
+- [x] `currentLoad > 1`
+- [x] `totalPorts < 0`
+- [x] `sizeBytes < 0`
 
 ### Kiểm tra
 
@@ -393,10 +393,10 @@ Không chỉ trả `false` mà không biết vì sao khi đang debug/test.
 
 ## Ý
 
-- [ ] Parser hoạt động
-- [ ] Validation hoạt động
-- [ ] String → enum hoạt động
-- [ ] Valid/invalid data đều test được
+- [x] Parser hoạt động
+- [x] Validation hoạt động
+- [x] String → enum hoạt động
+- [x] Valid/invalid data đều test được
 
 ## Cả hai
 
