@@ -659,9 +659,9 @@ usedPorts < totalPorts
 
 ### Kiểm tra
 
-- [ ] Copper 130 m, max 100 m → reject
-- [ ] Node hết port → reject
-- [ ] Edge bị loại không làm tăng `usedPorts`
+- [x] Copper 130 m, max 100 m → reject
+- [x] Node hết port → reject
+- [x] Edge bị loại không làm tăng `usedPorts`
 
 ---
 

@@ -18,6 +18,11 @@ namespace Validation {
     
     // Kiểm tra hợp lệ cho Packet
     bool isValidPacket(const Packet& packet, std::string& reason);
+
+    // Task B2.3: Physical Constraints
+    bool checkMaxLength(const Edge& edge);
+    bool checkPortCapacity(const Node& node);
+    bool isStaticFeasible(const Edge& edge);
 }
 
 #endif // VALIDATION_H
