@@ -618,11 +618,11 @@ src/CostModel.cpp
 
 ### Kiểm tra
 
-- [ ] Tính tay một edge
-- [ ] Code khớp kết quả tính tay
-- [ ] Terrain tăng → cost tăng
-- [ ] Media thay đổi → cost thay đổi
-- [ ] Không cộng routing delay vào cabling cost
+- [x] Tính tay một edge
+- [x] Code khớp kết quả tính tay
+- [x] Terrain tăng → cost tăng
+- [x] Media thay đổi → cost thay đổi
+- [x] Không cộng routing delay vào cabling cost
 
 ---
 
