@@ -1,11 +1,10 @@
+# Dữ liệu chuẩn mạng mẫu (Mạng Mô Phỏng PBL2)
 # Cấu trúc: id name type totalPorts processingTime
-# Dòng trống và comment (bắt đầu bằng #) sẽ bị bỏ qua
-
-0 H1 HOST 1 0.001
-1 R1 ROUTER 4 0.005
-2 R2 ROUTER 4 0.005
-3 H2 HOST 1 0.001
-
-# --- Test Validation ---
-# Node ID 4 có số lượng port âm (sẽ bị REJECT)
-4 INV ROUTER -1 0.005
+0 R1 ROUTER 4 0.0001
+1 R2 ROUTER 4 0.00012
+2 R3 ROUTER 4 0.00015
+3 R4 ROUTER 4 0.0001
+4 H1 HOST 1 0.0
+5 H2 HOST 1 0.0
+# Dữ liệu kiểm thử Validation (Sẽ bị REJECT khi nạp)
+99 INVALID_NODE ROUTER -1 0.0001

@@ -51,4 +51,17 @@ bool isValidPacket(const Packet& packet, std::string& reason) {
     return true;
 }
 
+bool checkMaxLength(const Edge& edge) {
+    return edge.length <= edge.maxSegmentLength;
+}
+
+bool checkPortCapacity(const Node& node) {
+    return node.usedPorts < node.totalPorts;
+}
+
+bool isStaticFeasible(const Edge& edge) {
+    // Static checks that don't depend on network state
+    return checkMaxLength(edge);
+}
+
 } // namespace Validation
