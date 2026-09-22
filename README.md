@@ -211,12 +211,12 @@ Adjacency lưu `edgeId`, không chỉ `nodeId`, vì hai node có thể có nhi�
 
 ### Kiểm tra đúng/sai
 
-- [ ] Thêm 3 node → `V() = 3`
-- [ ] Thêm 2 edge → `E() = 2`
-- [ ] Mỗi edge xuất hiện ở adjacency của cả hai đầu
-- [ ] `sum(adj[u].size()) == 2E`
-- [ ] `getEdge(edgeId)` trả đúng edge
-- [ ] `otherEndpoint()` trả đúng node còn lại
+- [x] Thêm 3 node → `V() = 3`
+- [x] Thêm 2 edge → `E() = 2`
+- [x] Mỗi edge xuất hiện ở adjacency của cả hai đầu
+- [x] `sum(adj[u].size()) == 2E`
+- [x] `getEdge(edgeId)` trả đúng edge
+- [x] `otherEndpoint()` trả đúng node còn lại
 
 ---
 
@@ -237,10 +237,10 @@ unite()
 
 ### Việc cần làm
 
-- [ ] Tạo `parent`
-- [ ] Tạo rank
-- [ ] Khai báo `find`
-- [ ] Khai báo `unite`
+- [x] Tạo `parent`
+- [x] Tạo rank
+- [x] Khai báo `find`
+- [x] Khai báo `unite`
 
 ### Kiểm tra
 
@@ -261,18 +261,18 @@ find(0) == find(2)
 
 Tạo data cho:
 
-- [ ] Edge node ID không tồn tại
-- [ ] Bandwidth = 0
-- [ ] MTU = 0
-- [ ] Load > 1
-- [ ] Port âm
-- [ ] Packet size âm
+- [x] Edge node ID không tồn tại
+- [x] Bandwidth = 0
+- [x] MTU = 0
+- [x] Load > 1
+- [x] Port âm
+- [x] Packet size âm
 
 ### Kiểm tra
 
-- [ ] Có valid case
-- [ ] Có invalid case
-- [ ] Có output mong đợi cho từng invalid case
+- [x] Có valid case
+- [x] Có invalid case
+- [x] Có output mong đợi cho từng invalid case
 
 ---
 
@@ -385,11 +385,11 @@ Không chỉ trả `false` mà không biết vì sao khi đang debug/test.
 
 ## Quyến
 
-- [ ] Graph compile
-- [ ] Add/get hoạt động
-- [ ] Adjacency đúng
-- [ ] DSU API tồn tại
-- [ ] Dataset mẫu có sẵn
+- [x] Graph compile
+- [x] Add/get hoạt động
+- [x] Adjacency đúng
+- [x] DSU API tồn tại
+- [x] Dataset mẫu có sẵn
 
 ## Ý
 
@@ -400,10 +400,10 @@ Không chỉ trả `false` mà không biết vì sao khi đang debug/test.
 
 ## Cả hai
 
-- [ ] `main.cpp` đọc 3 file data không crash
-- [ ] `sum(adj[u].size()) == 2E`
-- [ ] Dùng chung `Types.h`
-- [ ] Không duplicate struct
+- [x] `main.cpp` đọc 3 file data không crash
+- [x] `sum(adj[u].size()) == 2E`
+- [x] Dùng chung `Types.h`
+- [x] Không duplicate struct
 
 ```text
 week1-done
@@ -444,16 +444,16 @@ src/DSU.cpp
 
 ### Việc cần làm
 
-- [ ] Path compression
-- [ ] Union by rank
-- [ ] `find`
-- [ ] `unite`
+- [x] Path compression
+- [x] Union by rank
+- [x] `find`
+- [x] `unite`
 
 ### Kiểm tra
 
-- [ ] Các node cùng component có cùng root
-- [ ] Unite cùng component trả false
-- [ ] Không tạo cycle bằng cách unite hai node đã cùng root
+- [x] Các node cùng component có cùng root
+- [x] Unite cùng component trả false
+- [x] Không tạo cycle bằng cách unite hai node đã cùng root
 
 ---
 
@@ -469,9 +469,9 @@ src/DSU.cpp
 
 ### Kiểm tra
 
-- [ ] Same component → reject
-- [ ] Node hết port → reject
-- [ ] Edge quá dài → reject
+- [x] Same component → reject
+- [x] Node hết port → reject
+- [x] Edge quá dài → reject
 
 ---
 
@@ -491,9 +491,9 @@ edgeId tăng dần
 
 ### Kiểm tra
 
-- [ ] Cost nhỏ hơn đứng trước
-- [ ] Cost bằng nhau → ID nhỏ hơn
-- [ ] Hai lần chạy cùng dữ liệu cho cùng thứ tự
+- [x] Cost nhỏ hơn đứng trước
+- [x] Cost bằng nhau → ID nhỏ hơn
+- [x] Hai lần chạy cùng dữ liệu cho cùng thứ tự
 
 ---
 
@@ -530,14 +530,14 @@ Graph connected:
 edgeCount = V - 1
 ```
 
-- [ ] Không cycle
-- [ ] Connected
-- [ ] Tổng cost đúng
+- [x] Không cycle
+- [x] Connected
+- [x] Tổng cost đúng
 
 Graph disconnected:
 
-- [ ] `connected = false`
-- [ ] Report rõ không có spanning tree
+- [x] `connected = false`
+- [x] Report rõ không có spanning tree
 
 ---
 
@@ -547,28 +547,28 @@ Graph disconnected:
 
 ### Cách làm cơ bản
 
-- [ ] Lấy edge chưa được chọn vào MST
-- [ ] Sort theo cost
-- [ ] Chọn `k` edge phù hợp
-- [ ] Không vượt port
-- [ ] `isBackup = true`
-- [ ] `isBuilt = true`
+- [x] Lấy edge chưa được chọn vào MST
+- [x] Sort theo cost
+- [x] Chọn `k` edge phù hợp
+- [x] Không vượt port
+- [x] `isBackup = true`
+- [x] `isBuilt = true`
 
 ### Cách làm tốt hơn
 
 Với mỗi tree edge:
 
-- [ ] Tạm loại tree edge
-- [ ] Xác định hai phía bị tách
-- [ ] Tìm edge ngoài cây nối hai phía
-- [ ] Chọn backup phù hợp
+- [x] Tạm loại tree edge
+- [x] Xác định hai phía bị tách
+- [x] Tìm edge ngoài cây nối hai phía
+- [x] Chọn backup phù hợp
 
 ### Kiểm tra
 
-- [ ] Backup không trùng MST
-- [ ] Backup có `isBackup = true`
-- [ ] Backup thật sự tạo đường thay thế
-- [ ] Backup không làm vượt port
+- [x] Backup không trùng MST
+- [x] Backup có `isBackup = true`
+- [x] Backup thật sự tạo đường thay thế
+- [x] Backup không làm vượt port
 
 ---
 
@@ -700,12 +700,12 @@ MST + Backup
 
 ## Quyến
 
-- [ ] DSU
-- [ ] Kruskal
-- [ ] Tie-breaker
-- [ ] `canSelectEdge`
-- [ ] `buildMST`
-- [ ] Backup
+- [x] DSU
+- [x] Kruskal
+- [x] Tie-breaker
+- [x] `canSelectEdge`
+- [x] `buildMST`
+- [x] Backup
 
 ## Ý
 
