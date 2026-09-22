@@ -1047,14 +1047,14 @@ newConnection = true
 
 ## Ý
 
-- [ ] Transmission
-- [ ] Propagation
-- [ ] Processing
-- [ ] Queue
-- [ ] Base delay
-- [ ] MTU
-- [ ] Fragmentation
-- [ ] TCP/UDP
+- [x] Transmission
+- [x] Propagation
+- [x] Processing
+- [x] Queue
+- [x] Base delay
+- [x] MTU
+- [x] Fragmentation
+- [x] TCP/UDP
 
 ## Test
 
