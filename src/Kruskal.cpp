@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <queue>
 #include <unordered_map>
+#include "Validation.h"
 
 double defaultCablingCost(const Edge& e) {
     return e.length * e.unitPrice * e.terrainFactor + e.equipmentCost + e.maintenanceCost;
@@ -29,15 +30,11 @@ bool compareEdges(const Edge& a, const Edge& b, const CostFn& cost) {
     return a.id < b.id;
 }
 
-namespace {
-bool hasFreePort(const Node& n) { return n.usedPorts < n.totalPorts; }
-}
-
 RejectReason checkEdge(const Graph& g, const Edge& e, DSU& dsu) {
     if (!e.isUp) return RejectReason::LINK_DOWN;                    // dây đang hỏng, không thể lắp
-    if (e.length > e.maxSegmentLength) return RejectReason::TOO_LONG; // vượt độ dài tối đa của loại cáp
+    if (!Validation::isStaticFeasible(e)) return RejectReason::TOO_LONG; // vượt độ dài tối đa của loại cáp
     if (dsu.connected(e.u, e.v)) return RejectReason::CYCLE;         // đã có đường u~v, thêm nữa thành chu trình
-    if (!hasFreePort(g.getNode(e.u)) || !hasFreePort(g.getNode(e.v)))
+    if (!Validation::checkPortCapacity(g.getNode(e.u)) || !Validation::checkPortCapacity(g.getNode(e.v)))
         return RejectReason::NO_PORT;                                // một đầu hết cổng
     return RejectReason::NONE;
 }
@@ -161,7 +158,7 @@ BackupResult selectBackupLinks(Graph& g, const MSTResult& mst, int k, const Cost
     for (int id : candidates) {
         if (static_cast<int>(result.edgeIds.size()) >= k) break;
         Edge& e = g.getEdge(id);
-        if (!hasFreePort(g.getNode(e.u)) || !hasFreePort(g.getNode(e.v))) continue;
+        if (!Validation::checkPortCapacity(g.getNode(e.u)) || !Validation::checkPortCapacity(g.getNode(e.v))) continue;
         if (tree.comp.at(e.u) != tree.comp.at(e.v)) continue;   // không có đường trong cây để bảo vệ
 
         // Chỉ chọn nếu bảo vệ thêm ít nhất một cạnh cây chưa được bảo vệ
