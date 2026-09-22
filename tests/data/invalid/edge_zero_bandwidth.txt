@@ -1,0 +1,2 @@
+# Cấu trúc: id u v media length bw maxSeg price terrain equip maint mtu load delay
+0 1 2 FIBER 500 0 2000 5.0 1.2 1000 20 1500 0.5 0.001

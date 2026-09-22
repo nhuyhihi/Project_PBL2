@@ -1,0 +1,2 @@
+# Cấu trúc: id u v media length bw maxSeg price terrain equip maint mtu load delay
+0 1 9 COPPER 100 1000 100 2.5 1.0 500 10 1500 0.1 0.002

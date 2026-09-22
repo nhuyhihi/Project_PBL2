@@ -1,0 +1,2 @@
+# Cấu trúc: id src dest size type protocol canFragment newConnection
+0 0 3 -100 CONTROL TCP 0 0
