@@ -709,11 +709,11 @@ MST + Backup
 
 ## Ý
 
-- [ ] CostBreakdown
-- [ ] CablingCost
-- [ ] Static constraints
-- [ ] Port validation
-- [ ] MST report
+- [x] CostBreakdown
+- [x] CablingCost
+- [x] Static constraints
+- [x] Port validation
+- [x] MST report
 
 ## Cả hai
 
