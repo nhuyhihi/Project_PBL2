@@ -52,7 +52,8 @@ EventType IOManager::stringToEventType(const std::string& str) {
     throw std::invalid_argument("Unknown EventType: " + str);
 }
 
-bool IOManager::loadNodes(const std::string& filepath, Graph& graph) {
+bool IOManager::loadNodes(const std::string& filepath, Graph& graph,
+                           std::vector<LoadRejection>* rejections) {
     std::ifstream file(filepath);
     if (!file.is_open()) {
         std::cerr << "Lỗi: Không thể mở file " << filepath << "\n";
@@ -85,6 +86,7 @@ bool IOManager::loadNodes(const std::string& filepath, Graph& graph) {
         std::string reason;
         if (!Validation::isValidNode(node, reason)) {
             std::cerr << "REJECT Node ID " << node.id << ": " << reason << "\n";
+            if (rejections) rejections->push_back({node.id, reason});
             continue;
         }
 
@@ -93,7 +95,8 @@ bool IOManager::loadNodes(const std::string& filepath, Graph& graph) {
     return true;
 }
 
-bool IOManager::loadEdges(const std::string& filepath, Graph& graph) {
+bool IOManager::loadEdges(const std::string& filepath, Graph& graph,
+                           std::vector<LoadRejection>* rejections) {
     std::ifstream file(filepath);
     if (!file.is_open()) {
         std::cerr << "Lỗi: Không thể mở file " << filepath << "\n";
@@ -129,6 +132,7 @@ bool IOManager::loadEdges(const std::string& filepath, Graph& graph) {
         std::string reason;
         if (!Validation::isValidEdge(edge, graph, reason)) {
             std::cerr << "REJECT Edge ID " << edge.id << ": " << reason << "\n";
+            if (rejections) rejections->push_back({edge.id, reason});
             continue;
         }
 
@@ -137,7 +141,8 @@ bool IOManager::loadEdges(const std::string& filepath, Graph& graph) {
     return true;
 }
 
-bool IOManager::loadPackets(const std::string& filepath, std::vector<Packet>& packets) {
+bool IOManager::loadPackets(const std::string& filepath, std::vector<Packet>& packets,
+                             std::vector<LoadRejection>* rejections) {
     std::ifstream file(filepath);
     if (!file.is_open()) {
         std::cerr << "Lỗi: Không thể mở file " << filepath << "\n";
@@ -176,6 +181,7 @@ bool IOManager::loadPackets(const std::string& filepath, std::vector<Packet>& pa
         std::string reason;
         if (!Validation::isValidPacket(pkt, reason)) {
             std::cerr << "REJECT Packet ID " << pkt.id << ": " << reason << "\n";
+            if (rejections) rejections->push_back({pkt.id, reason});
             continue;
         }
 
