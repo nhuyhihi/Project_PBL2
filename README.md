@@ -890,9 +890,9 @@ dTrans =
 
 ### Kiểm tra
 
-- [ ] Byte → bit đúng
-- [ ] Mbps → bps đúng
-- [ ] Kết quả tính tay khớp code
+- [x] Byte → bit đúng
+- [x] Mbps → bps đúng
+- [x] Kết quả tính tay khớp code
 
 ---
 
@@ -904,7 +904,7 @@ dProp = length / propagationSpeed
 
 ### Kiểm tra
 
-- [ ] Đơn vị m / m/s = s
+- [x] Đơn vị m / m/s = s
 
 ---
 
@@ -916,7 +916,7 @@ dProc = nextNode.processingTime
 
 ### Kiểm tra
 
-- [ ] Dùng đúng node kế tiếp
+- [x] Dùng đúng node kế tiếp
 
 ---
 
@@ -929,8 +929,8 @@ queueDelay × congestionPenalty(load)
 
 ### Kiểm tra
 
-- [ ] Không nhân penalty vào toàn bộ delay
-- [ ] Queue nền đúng với data
+- [x] Không nhân penalty vào toàn bộ delay
+- [x] Queue nền đúng với data
 
 ---
 
@@ -949,9 +949,9 @@ dQueue
 
 ### Kiểm tra
 
-- [ ] Từng thành phần đúng
-- [ ] Tổng đúng
-- [ ] Không chứa cabling cost
+- [x] Từng thành phần đúng
+- [x] Tổng đúng
+- [x] Không chứa cabling cost
 
 ---
 
@@ -980,8 +980,8 @@ canFragment = true
 
 ### Kiểm tra
 
-- [ ] DF packet không đi qua edge không đủ MTU
-- [ ] Fragment packet vẫn có thể đi
+- [x] DF packet không đi qua edge không đủ MTU
+- [x] Fragment packet vẫn có thể đi
 
 ---
 
@@ -1005,9 +1005,9 @@ n = ceil(3000 / 1480)
 
 ### Kiểm tra
 
-- [ ] Fragment count = 3
-- [ ] Penalty đúng
-- [ ] Không nhầm `(n-1)` với `n`
+- [x] Fragment count = 3
+- [x] Penalty đúng
+- [x] Không nhầm `(n-1)` với `n`
 
 ---
 
@@ -1028,9 +1028,9 @@ newConnection = true
 
 ### Kiểm tra
 
-- [ ] TCP new connection có overhead
-- [ ] UDP không có overhead TCP
-- [ ] Không dùng `TCP × 1.5`
+- [x] TCP new connection có overhead
+- [x] UDP không có overhead TCP
+- [x] Không dùng `TCP × 1.5`
 
 ---
 

@@ -9,10 +9,11 @@ struct CostBreakdown {
     double equipment;     
     double maintenance;   
     double total;         
+};
 
 class CostModel {
 public:
     static CostBreakdown calculateCablingCost(const Edge& edge);
 };
 
-#endif // COSTMODEL_H
+#endif 

@@ -6,7 +6,7 @@
 
 int main() {
     std::cout << "========================================\n";
-    std::cout << " TEST MODULE REPORTER - B2.4 \n";
+    std::cout << " TEST MODULE REPORTER  \n";
     std::cout << "========================================\n\n";
 
     Graph graph;
@@ -32,6 +32,15 @@ int main() {
 
     // Gọi module Reporter để in báo cáo
     Reporter::printMSTReport(graph);
+
+    // Load packets để test phần Dijkstra
+    std::vector<Packet> packets;
+    if (!IOManager::loadPackets("data/packets.txt", packets)) {
+        std::cout << "Khong the load packets.txt\n";
+    } else {
+        // In báo cáo định tuyến Dijkstra
+        Reporter::printPacketRouteReport(graph, packets);
+    }
 
     return 0;
 }
