@@ -26,7 +26,7 @@ bool operator>(const State& a, const State& b) {
 
 } // namespace
 
-PathResult dijkstra(const Graph& g, int source, int destination, const WeightFn& weight) {
+PathResult dijkstra(const Graph& g, int source, int destination, const WeightFn& weight, bool onlyBuilt) {
     PathResult result;
 
     if (!g.hasNode(source) || !g.hasNode(destination)) return result;  // reachable = false
@@ -59,6 +59,8 @@ PathResult dijkstra(const Graph& g, int source, int destination, const WeightFn&
         // Task A3.4: Relaxation
         for (int edgeId : g.getNeighbors(cur.node)) {
             const Edge& e = g.getEdge(edgeId);
+            if (!e.isUp) continue;             // day dang dut -> khong the di qua
+            if (onlyBuilt && !e.isBuilt) continue;  // chi di tren day DA LAP (MST + Backup)
             int v = g.otherEndpoint(cur.node, edgeId);
             if (v == -1 || visited[v]) continue;
 
