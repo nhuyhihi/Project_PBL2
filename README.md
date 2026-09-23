@@ -782,10 +782,10 @@ hopCount
 
 ### Kiểm tra
 
-- [ ] Route success → `reachable = true`
-- [ ] Route fail → `reachable = false`
-- [ ] `hopCount = edges.size()`
-- [ ] Node path và edge path khớp nhau
+- [x] Route success → `reachable = true`
+- [x] Route fail → `reachable = false`
+- [x] `hopCount = edges.size()`
+- [x] Node path và edge path khớp nhau
 
 ---
 
@@ -805,9 +805,9 @@ weight = length
 
 ### Kiểm tra
 
-- [ ] Kết quả hop count đúng
-- [ ] Kết quả length đúng
-- [ ] Có thể so sánh với BFS cho trường hợp weight = 1
+- [x] Kết quả hop count đúng
+- [x] Kết quả length đúng
+- [x] Có thể so sánh với BFS cho trường hợp weight = 1
 
 ---
 
@@ -823,9 +823,9 @@ priority_queue<
 
 ### Kiểm tra
 
-- [ ] Pop state nhỏ nhất
-- [ ] Bỏ record cũ
-- [ ] Không dùng queue thường
+- [x] Pop state nhỏ nhất
+- [x] Bỏ record cũ
+- [x] Không dùng queue thường
 
 ---
 
@@ -845,9 +845,9 @@ parentEdge[v]
 
 ### Kiểm tra
 
-- [ ] Parent đúng
-- [ ] ParentEdge đúng
-- [ ] Cạnh song song vẫn xác định đúng edge
+- [x] Parent đúng
+- [x] ParentEdge đúng
+- [x] Cạnh song song vẫn xác định đúng edge
 
 ---
 
@@ -1038,12 +1038,12 @@ newConnection = true
 
 ## Quyến
 
-- [ ] Dijkstra
-- [ ] Min heap
-- [ ] Relaxation
-- [ ] Parent
-- [ ] ParentEdge
-- [ ] Reconstruct path
+- [x] Dijkstra
+- [x] Min heap
+- [x] Relaxation
+- [x] Parent
+- [x] ParentEdge
+- [x] Reconstruct path
 
 ## Ý
 
