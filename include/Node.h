@@ -10,9 +10,9 @@ struct Node {
     NodeType type;
     int totalPorts;
     int usedPorts;
-    double processingTime; // second
+    double processingTime;
 
     Node() : id(-1), type(NodeType::ROUTER), totalPorts(0), usedPorts(0), processingTime(0.0) {}
 };
 
-#endif // NODE_H
+#endif 

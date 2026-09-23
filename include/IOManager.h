@@ -29,4 +29,4 @@ public:
     static EventType stringToEventType(const std::string& str);
 };
 
-#endif // IOMANAGER_H
+#endif 

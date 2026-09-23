@@ -12,14 +12,11 @@ namespace Validation {
     bool isValidNode(const Node& node, std::string& reason);
     
     // Kiểm tra hợp lệ cho Edge.
-    // Lưu ý: Việc tham chiếu node có tồn tại không sẽ được Graph kiểm tra 
-    // hoặc có thể truyền Graph vào để kiểm tra.
     bool isValidEdge(const Edge& edge, const Graph& graph, std::string& reason);
     
     // Kiểm tra hợp lệ cho Packet
     bool isValidPacket(const Packet& packet, std::string& reason);
 
-    // Task B2.3: Physical Constraints
     bool checkMaxLength(const Edge& edge);
     bool checkPortCapacity(const Node& node);
     bool isStaticFeasible(const Edge& edge);

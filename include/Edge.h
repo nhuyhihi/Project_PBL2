@@ -17,7 +17,6 @@ struct Edge {
     double maintenanceCost;
     int mtu;                  // bytes
     
-    // Dynamic states
     double currentLoad;       // 0.0 to 1.0
     double queueDelay;        // seconds
     bool isUp;

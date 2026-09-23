@@ -1,4 +1,4 @@
-# Dữ liệu chuẩn mạng mẫu (Mạng Mô Phỏng PBL2)
+# Dữ liệu chuẩn mạng mẫu
 # Cấu trúc: id name type totalPorts processingTime
 0 R1 ROUTER 4 0.0001
 1 R2 ROUTER 4 0.00012

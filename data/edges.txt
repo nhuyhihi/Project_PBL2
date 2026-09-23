@@ -1,4 +1,4 @@
-# Dữ liệu chuẩn mạng mẫu (Mạng Mô Phỏng PBL2)
+# Dữ liệu chuẩn mạng mẫu 
 # Cấu trúc: id u v media length bw maxSeg price terrain equip maint mtu load delay
 0 0 1 FIBER 400 1000 2000 5.0 1.0 50.0 48.0 1500 0.0 0.001
 1 1 3 FIBER 500 1000 2000 5.0 1.0 50.0 48.0 1500 0.0 0.001

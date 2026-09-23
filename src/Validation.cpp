@@ -7,12 +7,10 @@ bool isValidNode(const Node& node, std::string& reason) {
         reason = "totalPorts không được âm";
         return false;
     }
-    // Các quy tắc node hợp lệ khác có thể thêm ở đây
     return true;
 }
 
 bool isValidEdge(const Edge& edge, const Graph& graph, std::string& reason) {
-    // Kiểm tra tham chiếu node
     try {
         graph.getNode(edge.u);
     } catch (...) {
@@ -27,7 +25,6 @@ bool isValidEdge(const Edge& edge, const Graph& graph, std::string& reason) {
         return false;
     }
 
-    // Các kiểm tra khác
     if (edge.bandwidthMbps <= 0) {
         reason = "bandwidthMbps phải lớn hơn 0";
         return false;
@@ -60,8 +57,7 @@ bool checkPortCapacity(const Node& node) {
 }
 
 bool isStaticFeasible(const Edge& edge) {
-    // Static checks that don't depend on network state
     return checkMaxLength(edge);
 }
 
-} // namespace Validation
+}

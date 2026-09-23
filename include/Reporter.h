@@ -9,4 +9,4 @@ namespace Reporter {
     void printMSTReport(const Graph& graph);
 }
 
-#endif // REPORTER_H
+#endif
