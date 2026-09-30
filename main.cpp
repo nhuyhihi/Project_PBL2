@@ -42,7 +42,6 @@ int main() {
         std::cout << "=> Canh bao: Mang bi chia cat, khong the ket noi tat ca cac nut.\n";
     }
 
-    // 2. Chạy thuật toán tìm cáp dự phòng (Backup Links)
     std::cout << "\n=== TIEN HANH TIM CAP DU PHONG ===\n";
     BackupResult backupResult = selectBackupLinks(graph, mstResult, 2, costFn);
     std::cout << "=> Da chon them " << backupResult.edgeIds.size() << " cap du phong.\n";
