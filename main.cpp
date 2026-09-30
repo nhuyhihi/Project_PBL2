@@ -5,6 +5,8 @@
 #include "Kruskal.h"
 #include "CostModel.h"
 #include "Reporter.h"
+#include "Simulator.h"
+#include <iomanip>
 
 int main() {
     std::cout << "=== KHOI TAO DO THI ===\n";
@@ -52,8 +54,24 @@ int main() {
     // 4. In Bảng định tuyến (Routing Table) toàn mạng
     Reporter::printFullRoutingTable(graph);
 
-    // 4. In Báo cáo Định tuyến và Độ trễ gói tin 
-    Reporter::printPacketRouteReport(graph, packets);
+    std::cout << "\n=== TIEN HANH MO PHONG TRUYEN GOI TIN (SIMULATOR) ===\n";
+    // 5. Mô phỏng gửi gói tin bằng Module Simulator (Task của Ý)
+    for (const Packet& pkt : packets) {
+        // Tạm thời dùng lengthWeight vì Quyến chưa xong Task A4.3 (Dynamic Cost)
+        PathResult path = dijkstra(graph, pkt.source, pkt.destination, lengthWeight, /*onlyBuilt=*/true);
+        
+        std::cout << "Packet #" << pkt.id << " (" << pkt.source << " -> " << pkt.destination << ", " << pkt.sizeBytes << " bytes):\n";
+        
+        // Gọi thẳng hàm sendPacket của Ý
+        SimulationResult res = Simulator::sendPacket(pkt, path, graph);
+        
+        if (res.success) {
+            std::cout << "  => SUCCESS! Thoi gian truyen: " << std::fixed << std::setprecision(6) << res.totalDelay 
+                      << " s (Phan manh: " << res.fragmentCount << " manh)\n";
+        } else {
+            std::cout << "  => DROP! Ly do: " << res.failReason << "\n";
+        }
+    }
 
     std::cout << "\n=== KET THUC CHUONG TRINH ===\n";
     return 0;

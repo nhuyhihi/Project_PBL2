@@ -1,0 +1,7 @@
+# Scenario: MTU và Phân mảnh (Fragmentation)
+# Định dạng: [Time] [EventType] [TargetEdgeId] [Value]
+# Kịch bản này không cần phát sinh sự kiện làm thay đổi môi trường mạng.
+# Mục đích: Kịch bản tĩnh này kết hợp với file packet.txt (chứa các gói tin lớn hơn 1500 bytes)
+# để kiểm tra xem hệ thống có trả về lỗi DF_BLOCKED_BY_MTU hoặc tự động chia nhỏ Fragment không.
+
+# (Không có sự kiện động nào diễn ra)
