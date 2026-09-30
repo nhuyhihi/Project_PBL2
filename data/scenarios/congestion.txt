@@ -1,0 +1,11 @@
+# Scenario: Congestion (Tắc nghẽn mạng)
+# Định dạng: [Time] [EventType] [TargetEdgeId] [Value]
+# Mục đích: Đẩy tải (load) của cạnh mạng số 1 lên cao dần theo thời gian.
+# Dự kiến: Khi tải vượt mốc 0.80, hệ số phạt (Congestion Penalty) sẽ tăng vọt,
+# buộc thuật toán Dijkstra (của Quyến) phải tự động tìm đường đi khác dài hơn nhưng vắng hơn.
+
+0.0 LOAD_UPDATE 1 0.40
+1.0 LOAD_UPDATE 1 0.85
+2.0 LOAD_UPDATE 1 0.95
+3.0 LOAD_UPDATE 1 1.00
+4.0 LOAD_UPDATE 1 0.20

@@ -1,0 +1,10 @@
+# Scenario: QoS (Chất lượng dịch vụ)
+# Định dạng: [Time] [EventType] [TargetEdgeId] [Value]
+# Mục đích: Thay đổi thời gian chờ (Queue Delay) trên cạnh số 2.
+# Dự kiến: Gói tin loại REAL_TIME rất nhạy cảm với Delay nên sẽ lập tức đổi đường đi.
+# Tuy nhiên, gói tin BULK_DATA không quan tâm đến Delay nên vẫn kiên quyết đi đường cũ.
+
+0.0 DELAY_UPDATE 2 0.005
+1.5 DELAY_UPDATE 2 0.050
+3.0 DELAY_UPDATE 2 0.200
+4.5 DELAY_UPDATE 2 0.002

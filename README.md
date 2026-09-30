@@ -1121,6 +1121,7 @@ Với model chuẩn:
 - [ ] Load hợp lệ
 - [ ] Penalty không âm
 - [ ] Load = 1 không vượt max model
+- [ ] ⚠️ CHÚ Ý DRY: Hàm `DelayModel::calcQueueDelay()` của Ý phải gọi hàm này của Quyến, không được để 2 nơi cùng tính penalty.
 
 ---
 
@@ -1169,6 +1170,8 @@ wProc × dProc
 wQueue × dQueue × congestionPenalty
 +
 fragmentPenalty
+
+(⚠️ CHÚ Ý DRY: Để lấy dTrans, dProp..., Dijkstra CẦN phải #include "DelayModel.h" và gọi hàm của Ý. Tuyệt đối không tự viết lại công thức toán học!)
 ```
 
 ### Kiểm tra
@@ -1273,7 +1276,7 @@ DELAY_UPDATE
 ### Làm
 
 - [ ] Duyệt path
-- [ ] Tính 4 delay
+- [ ] Tính 4 delay (⚠️ CHÚ Ý DRY: BẮT BUỘC gọi `DelayModel::calculateTotalDelay()`, KHÔNG tự bóc tách tính toán lại công thức)
 - [ ] Kiểm tra MTU
 - [ ] Tính fragmentation
 - [ ] Cộng TCP overhead một lần
@@ -1287,6 +1290,7 @@ DELAY_UPDATE
 
 ```text
 loadDelta = dTrans / LOAD_WINDOW_SECONDS
+(⚠️ CHÚ Ý DRY: Phải gọi lại `DelayModel::calcTransmissionDelay(...)` để lấy dTrans, KHÔNG viết lại công thức size*8/bw)
 
 currentLoad =
 min(1.0, currentLoad + loadDelta)

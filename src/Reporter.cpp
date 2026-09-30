@@ -8,7 +8,7 @@
 
 namespace Reporter {
 
-void printMSTReport(const Graph& graph) {
+void printMSTReport(const Graph& graph, const CostModel& costModel) {
     std::cout << "==============================================================\n";
     std::cout << "               BAO CAO KET QUA QUY HOACH CAP                  \n";
     std::cout << "==============================================================\n";
@@ -33,7 +33,7 @@ void printMSTReport(const Graph& graph) {
         // Bỏ qua các cạnh đứt
         if (!edge.isUp) continue;
 
-        double cost = CostModel::calculateCablingCost(edge).total;
+        double cost = costModel.calculateCablingCost(edge).total;
         
         // Build All: cộng tất cả cạnh có thể đi được
         if (cost != Config::INF) {
@@ -70,6 +70,60 @@ void printMSTReport(const Graph& graph) {
     std::cout << "2. Phuong an Toi gian (Chi xay MST)      : " << totalMST << " DV\n";
     std::cout << "3. Phuong an An toan (MST + Backup)      : " << totalMSTBackup << " DV\n";
     std::cout << "==============================================================\n";
+}
+
+void printFullRoutingTable(const Graph& graph, const WeightFn& weight) {
+    std::cout << "\n========================================================================\n";
+    std::cout << "          BANG DINH TUYEN TOAN BO MANG LUOI (ROUTING TABLES)            \n";
+    std::cout << "========================================================================\n";
+
+    std::vector<int> allNodes = graph.nodeIds();
+
+    for (int src : allNodes) {
+        std::cout << "\n[ ROUTING TABLE CHO ROUTER / NODE " << src << " ]\n";
+        std::cout << std::left 
+                  << std::setw(12) << "Destination" 
+                  << std::setw(12) << "Next Hop" 
+                  << std::setw(15) << "Metric (Cost)" 
+                  << std::setw(10) << "Hops" 
+                  << "Path\n";
+        std::cout << "------------------------------------------------------------------------\n";
+
+        for (int dest : allNodes) {
+            if (src == dest) continue; // Không cần tự định tuyến về chính mình
+
+            // Tìm đường đi trên hạ tầng ĐÃ XÂY (onlyBuilt = true)
+            PathResult res = dijkstra(graph, src, dest, weight, /*onlyBuilt=*/true);
+
+            if (!res.reachable) {
+                std::cout << std::left 
+                          << std::setw(12) << dest 
+                          << std::setw(12) << "UNREACHABLE" 
+                          << std::setw(15) << "INF" 
+                          << std::setw(10) << "-" 
+                          << "Khong co ket noi\n";
+            } else {
+                // Next hop chính là node thứ 2 trên đường đi (res.nodes[1])
+                // Nếu res.nodes.size() < 2 thì có lỗi gì đó, an toàn thì check > 1
+                int nextHop = res.nodes.size() > 1 ? res.nodes[1] : src;
+
+                // Ghép chuỗi lộ trình (VD: 0 -> 1 -> 2)
+                std::string pathStr = "";
+                for (size_t i = 0; i < res.nodes.size(); ++i) {
+                    pathStr += std::to_string(res.nodes[i]);
+                    if (i + 1 < res.nodes.size()) pathStr += " -> ";
+                }
+
+                std::cout << std::left 
+                          << std::setw(12) << dest 
+                          << std::setw(12) << nextHop 
+                          << std::fixed << std::setprecision(2) << std::setw(15) << res.totalCost 
+                          << std::setw(10) << res.hopCount 
+                          << pathStr << "\n";
+            }
+        }
+    }
+    std::cout << "========================================================================\n";
 }
 
 void printPacketRouteReport(const Graph& graph, const std::vector<Packet>& packets, const WeightFn& weight) {
