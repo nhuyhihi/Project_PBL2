@@ -49,6 +49,9 @@ int main() {
     // 3. In Báo cáo Chi phí lắp đặt 
     Reporter::printMSTReport(graph, pricingModel);
 
+    // 4. In Bảng định tuyến (Routing Table) toàn mạng
+    Reporter::printFullRoutingTable(graph);
+
     // 4. In Báo cáo Định tuyến và Độ trễ gói tin 
     Reporter::printPacketRouteReport(graph, packets);
 
