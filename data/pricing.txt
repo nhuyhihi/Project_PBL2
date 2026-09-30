@@ -1,0 +1,20 @@
+# BẢNG ĐƠN GIÁ VẬT TƯ VÀ CHI PHÍ LẮP ĐẶT MẠNG (PBL2)
+# Đơn vị: DV (Đơn vị tiền tệ)
+
+# Phí nhân công lắp đặt cơ bản cho mỗi liên kết
+INSTALLATION_COST 0.0
+
+# Đơn giá cáp trên 1 mét (unitPrice/m)
+UNIT_PRICE COPPER 1.0
+UNIT_PRICE FIBER 5.0
+UNIT_PRICE WIRELESS 0.0
+
+# Phí thiết bị 2 đầu (equipmentCost)
+EQUIPMENT_COST COPPER 50.0
+EQUIPMENT_COST FIBER 50.0
+EQUIPMENT_COST WIRELESS 80.0
+
+# Phí bảo trì (maintenanceCost) định kỳ
+MAINTENANCE_COST COPPER 30.0
+MAINTENANCE_COST FIBER 48.0
+MAINTENANCE_COST WIRELESS 20.0

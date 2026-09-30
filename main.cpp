@@ -26,9 +26,13 @@ int main() {
         std::cout << "=> So luong packet load thanh cong: " << packets.size() << "\n";
     }
 
+    std::cout << "=== NẠP BẢNG GIÁ (PRICING) ===\n";
+    CostModel pricingModel;
+    pricingModel.loadPricing("data/pricing.txt");
+
     std::cout << "\n=== TIEN HANH QUY HOACH MANG LUI (KRUSKAL) ===\n";
     // 1. Chạy thuật toán Kruskal tìm cây khung nhỏ nhất (MST)
-    auto costFn = [](const Edge& e) { return CostModel::calculateCablingCost(e).total; };
+    auto costFn = [&pricingModel](const Edge& e) { return pricingModel.calculateCablingCost(e).total; };
     MSTResult mstResult = buildMST(graph, costFn);
     if (mstResult.connected) {
         std::cout << "=> Da ket noi thanh cong toan bo mang luoi!\n";
@@ -43,7 +47,7 @@ int main() {
 
     std::cout << "\n=== IN BAO CAO CHI PHI VA DINH TUYEN ===\n";
     // 3. In Báo cáo Chi phí lắp đặt 
-    Reporter::printMSTReport(graph);
+    Reporter::printMSTReport(graph, pricingModel);
 
     // 4. In Báo cáo Định tuyến và Độ trễ gói tin 
     Reporter::printPacketRouteReport(graph, packets);

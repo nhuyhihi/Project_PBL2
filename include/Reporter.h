@@ -5,11 +5,13 @@
 #include "Packet.h"
 #include "Dijkstra.h"
 
+#include "CostModel.h"
+
 namespace Reporter {
     // 1. Bài toán Quy hoạch đi dây (Kruskal)
     // In báo cáo chi tiết về kết quả cây khung nhỏ nhất (MST) và các cáp dự phòng.
     // So sánh chi phí tổng thể giữa: Xây tất cả, Chỉ xây MST, và Xây MST + Backup.
-    void printMSTReport(const Graph& graph);
+    void printMSTReport(const Graph& graph, const CostModel& costModel);
 
     // 2. Bài toán Định tuyến gói tin (Dijkstra)
     // Voi moi Packet, dung Dijkstra tim duong di, roi cong don do tre tung chang.

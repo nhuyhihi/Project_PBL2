@@ -8,7 +8,7 @@
 
 namespace Reporter {
 
-void printMSTReport(const Graph& graph) {
+void printMSTReport(const Graph& graph, const CostModel& costModel) {
     std::cout << "==============================================================\n";
     std::cout << "               BAO CAO KET QUA QUY HOACH CAP                  \n";
     std::cout << "==============================================================\n";
@@ -33,7 +33,7 @@ void printMSTReport(const Graph& graph) {
         // Bỏ qua các cạnh đứt
         if (!edge.isUp) continue;
 
-        double cost = CostModel::calculateCablingCost(edge).total;
+        double cost = costModel.calculateCablingCost(edge).total;
         
         // Build All: cộng tất cả cạnh có thể đi được
         if (cost != Config::INF) {

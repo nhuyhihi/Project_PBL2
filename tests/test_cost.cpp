@@ -32,15 +32,18 @@ int main() {
     std::cout << "\nLoad thanh cong " << graph.V() << " Nodes va " 
               << graph.E() << " Edges tu file input.\n\n";
 
+    CostModel costModel;
+    costModel.loadPricing("data/pricing.txt");
+
     // Đáp án chi phí kỳ vọng (tương ứng với e0 đến e8 trong data/edges.txt)
-    std::vector<double> expectedCosts = {2098.0, 2598.0, 2798.0, 3098.0, 1598.0, 9098.0, 115.0, 135.0, 295.0};
+    std::vector<double> expectedCosts = {2098.0, 2598.0, 2798.0, 3098.0, 1598.0, 9098.0, 120.0, 130.0, 210.0};
     
     bool allPassed = true;
 
     for (int i = 0; i < graph.E(); ++i) {
         Edge e = graph.getEdge(i);
         double expected = expectedCosts[i];
-        CostBreakdown cb = CostModel::calculateCablingCost(e);
+        CostBreakdown cb = costModel.calculateCablingCost(e);
 
         std::cout << "Kiem tra Edge e" << e.id << " (" << (e.mediaType == MediaType::FIBER ? "FIBER" : "COPPER") << "): \n";
         std::cout << "  - Length: " << e.length << "m, Terrain: " << e.terrainFactor << "\n";
@@ -62,7 +65,7 @@ int main() {
     // --- TEST CẠNH KHÔNG ĐI ĐƯỢC (INF) ---
     Edge brokenEdge = graph.getEdge(0);
     brokenEdge.isUp = false; // Báo hiệu đứt cáp
-    CostBreakdown cbBroken = CostModel::calculateCablingCost(brokenEdge);
+    CostBreakdown cbBroken = costModel.calculateCablingCost(brokenEdge);
     
     std::cout << "Kiem tra canh bi dut (isUp = false):\n";
     std::cout << "  - Total Calculated: " << cbBroken.total << "\n";

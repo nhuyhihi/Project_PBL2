@@ -27,8 +27,11 @@ int main() {
     std::vector<Packet> packets;
     IOManager::loadPackets("data/packets.txt", packets);
 
+    CostModel costModel;
+    costModel.loadPricing("data/pricing.txt");
+
     // Ham chi phi that (module cua Y) - dung de Kruskal chon day xay
-    auto realCost = [](const Edge& e) { return CostModel::calculateCablingCost(e).total; };
+    auto realCost = [&costModel](const Edge& e) { return costModel.calculateCablingCost(e).total; };
 
     // Buoc 1-2: xay ha tang truoc khi dinh tuyen goi tin (dung thu tu
     // trong so do Tuan 3: MST + Backup -> Dijkstra -> ...)

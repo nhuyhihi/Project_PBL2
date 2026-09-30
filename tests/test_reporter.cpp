@@ -30,8 +30,11 @@ int main() {
         }
     }
 
+    CostModel costModel;
+    costModel.loadPricing("data/pricing.txt");
+
     // Gọi module Reporter để in báo cáo
-    Reporter::printMSTReport(graph);
+    Reporter::printMSTReport(graph, costModel);
 
     // Load packets để test phần Dijkstra
     std::vector<Packet> packets;
