@@ -7,7 +7,7 @@
 #include "Reporter.h"
 
 int main() {
-    std::cout << "=== KHOI TAO DO THI PBL2 ===\n";
+    std::cout << "=== KHOI TAO DO THI ===\n";
     Graph graph;
     
     std::cout << "\n--- Load Nodes ---\n";
