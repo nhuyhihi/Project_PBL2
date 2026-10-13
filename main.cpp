@@ -6,6 +6,7 @@
 #include "CostModel.h"
 #include "Reporter.h"
 #include "Simulator.h"
+#include "RoutingCost.h"
 #include <iomanip>
 
 int main() {
@@ -56,12 +57,15 @@ int main() {
     std::cout << "\n=== TIEN HANH MO PHONG TRUYEN GOI TIN (SIMULATOR) ===\n";
     // 5. Mô phỏng gửi gói tin bằng Module Simulator (Task của Ý)
     for (const Packet& pkt : packets) {
-        // Tạm thời dùng lengthWeight vì Quyến chưa xong Task A4.3 (Dynamic Cost)
-        PathResult path = dijkstra(graph, pkt.source, pkt.destination, lengthWeight, /*onlyBuilt=*/true);
+        // dinh tuyen theo chi phi "dong" (RoutingCost),
+        // phu thuoc loai QoS cua goi tin (REAL_TIME/BULK_DATA/CONTROL) va
+        // tai hien tai cua tung day cap - thay cho lengthWeight tinh truoc day.
+        PathResult path = dijkstra(graph, pkt.source, pkt.destination,
+                                    RoutingCost::makeWeightFn(pkt), /*onlyBuilt=*/true);
         
         std::cout << "Packet #" << pkt.id << " (" << pkt.source << " -> " << pkt.destination << ", " << pkt.sizeBytes << " bytes):\n";
         
-        // Gọi thẳng hàm sendPacket của Ý
+        // Gọi thẳng hàm sendPacket
         SimulationResult res = Simulator::sendPacket(pkt, path, graph);
         
         if (res.success) {
