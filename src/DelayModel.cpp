@@ -1,5 +1,6 @@
 #include "DelayModel.h"
 #include "Config.h"
+#include "RoutingCost.h"
 
 namespace DelayModel {
 
@@ -20,18 +21,9 @@ namespace DelayModel {
         return nextNode.processingTime;
     }
 
-    // Hàm phụ trợ tính Penalty nghẽn mạng (Dựa theo mô hình Tuần 4)
-    static double congestionPenalty(double load) {
-        if (load <= 0.80) return 1.0;
-        if (load <= 0.85) return 1.56;
-        if (load <= 0.90) return 3.25;
-        if (load <= 0.95) return 6.06;
-        return 10.00;
-    }
-
     double calcQueueDelay(double baseQueueDelay, double currentLoad) {
-        // Trễ hàng đợi bị khuếch đại nếu cáp đang tắc nghẽn
-        return baseQueueDelay * congestionPenalty(currentLoad);
+        // Trễ hàng đợi bị khuếch đại nếu cáp đang tắc nghẽn (Dùng hàm của RoutingCost, tuân thủ DRY)
+        return baseQueueDelay * RoutingCost::congestionPenalty(currentLoad);
     }
 
     double calcBaseDelay(const Packet& packet, const Edge& edge, const Node& nextNode) {

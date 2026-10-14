@@ -54,18 +54,28 @@ int main() {
     // 4. In Bảng định tuyến (Routing Table) toàn mạng
     Reporter::printFullRoutingTable(graph);
 
-    std::cout << "\n=== TIEN HANH MO PHONG TRUYEN GOI TIN (SIMULATOR) ===\n";
-    // 5. Mô phỏng gửi gói tin bằng Module Simulator (Task của Ý)
+    std::cout << "\n=== TIEN HANH MO PHONG TRUYEN GOI TIN CO BAN (SIMULATOR) ===\n";
+    // 5. Mô phỏng gửi gói tin với Snapshot và RoutingCost động (Task Tuần 4 của Quyến & Ý)
     for (const Packet& pkt : packets) {
-        // dinh tuyen theo chi phi "dong" (RoutingCost),
-        // phu thuoc loai QoS cua goi tin (REAL_TIME/BULK_DATA/CONTROL) va
-        // tai hien tai cua tung day cap - thay cho lengthWeight tinh truoc day.
+        // Chụp snapshot trạng thái mạng tại thời điểm bắt đầu định tuyến (Task B4.1, B4.2)
+        NetworkSnapshot snap = Simulator::snapshotNetworkState(graph);
+
+        // Định tuyến theo chi phí động (RoutingCost) theo loại QoS (Task A4.2, A4.4)
         PathResult path = dijkstra(graph, pkt.source, pkt.destination,
                                     RoutingCost::makeWeightFn(pkt), /*onlyBuilt=*/true);
         
-        std::cout << "Packet #" << pkt.id << " (" << pkt.source << " -> " << pkt.destination << ", " << pkt.sizeBytes << " bytes):\n";
+        std::cout << "Packet #" << pkt.id << " (" << pkt.source << " -> " << pkt.destination 
+                  << ", " << pkt.sizeBytes << " bytes, Type: " << (pkt.type == PacketType::REAL_TIME ? "REAL_TIME" : (pkt.type == PacketType::BULK_DATA ? "BULK_DATA" : "CONTROL")) << "):\n";
         
-        // Gọi thẳng hàm sendPacket
+        if (path.reachable) {
+            std::cout << "  -> Route Dijkstra chon: ";
+            for (size_t i = 0; i < path.nodes.size(); ++i) {
+                std::cout << path.nodes[i] << (i + 1 < path.nodes.size() ? " -> " : "");
+            }
+            std::cout << "\n";
+        }
+
+        // Mô phỏng gửi gói tin (Task B4.5, B4.6)
         SimulationResult res = Simulator::sendPacket(pkt, path, graph);
         
         if (res.success) {
@@ -73,6 +83,35 @@ int main() {
                       << " s (Phan manh: " << res.fragmentCount << " manh)\n";
         } else {
             std::cout << "  => DROP! Ly do: " << res.failReason << "\n";
+        }
+    }
+
+    std::cout << "\n=== DEMO KICH BAN SU KIEN DONG (SCENARIO SIMULATION) ===\n";
+    // 6. Nạp kịch bản tắc nghẽn (data/scenarios/congestion.txt) và áp dụng sự kiện (Task B4.3, B4.4, B4.7)
+    Scenario congestionScenario;
+    if (IOManager::loadScenario("data/scenarios/congestion.txt", congestionScenario)) {
+        std::cout << "-> Da nap kich ban: " << congestionScenario.name 
+                  << " voi " << congestionScenario.events.size() << " su kien.\n";
+
+        // Thực thi từng sự kiện trong kịch bản để thấy tác động động
+        for (const auto& ev : congestionScenario.events) {
+            std::cout << "\n[Time = " << ev.time << "s] Ap dung su kien vao Edge #" << ev.targetId 
+                      << " (Load moi: " << ev.value << "):\n";
+            
+            Simulator::applyEvent(graph, ev);
+            
+            // Thử định tuyến lại cho gói tin REAL_TIME đầu tiên để xem route có đổi không
+            if (!packets.empty()) {
+                const Packet& testPkt = packets[0];
+                PathResult newPath = dijkstra(graph, testPkt.source, testPkt.destination,
+                                              RoutingCost::makeWeightFn(testPkt), /*onlyBuilt=*/true);
+                
+                std::cout << "  -> Route moi cho Packet #" << testPkt.id << " (" << testPkt.source << " -> " << testPkt.destination << "): ";
+                for (size_t i = 0; i < newPath.nodes.size(); ++i) {
+                    std::cout << newPath.nodes[i] << (i + 1 < newPath.nodes.size() ? " -> " : "");
+                }
+                std::cout << " (Cost: " << std::fixed << std::setprecision(6) << newPath.totalCost << ")\n";
+            }
         }
     }
 
