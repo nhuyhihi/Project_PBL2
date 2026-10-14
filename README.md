@@ -32,7 +32,6 @@ PBL2/
 │   ├── Kruskal.h
 │   ├── Dijkstra.h
 │   ├── Reliability.h
-│   ├── STPSimulator.h
 │   ├── Scenario.h
 │   ├── Simulator.h
 │   ├── IOManager.h
@@ -48,7 +47,6 @@ PBL2/
 │   ├── Kruskal.cpp
 │   ├── Dijkstra.cpp
 │   ├── Reliability.cpp
-│   ├── STPSimulator.cpp
 │   ├── Simulator.cpp
 │   ├── IOManager.cpp
 │   └── Reporter.cpp
@@ -99,12 +97,12 @@ Merge
 
 ## 🎯 Mục tiêu tuần
 
-- [ ] Load được `nodes.txt`
-- [ ] Load được `edges.txt`
-- [ ] Load được `packets.txt`
-- [ ] Validation hoạt động
-- [ ] Graph + adjacency hoạt động
-- [ ] Struct lõi và API được chốt
+- [x] Load được `nodes.txt`
+- [x] Load được `edges.txt`
+- [x] Load được `packets.txt`
+- [x] Validation hoạt động
+- [x] Graph + adjacency hoạt động
+- [x] Struct lõi và API được chốt
 ---
 # 6.1. CẢ HAI – NGÀY 1–2
 
@@ -112,13 +110,13 @@ Merge
 
 ### Việc cần làm
 
-- [ ] Thống nhất nghĩa của `bandwidth`
-- [ ] Thống nhất `queueDelay`
-- [ ] Thống nhất `currentLoad`
-- [ ] Thống nhất `MTU`
-- [ ] Thống nhất `terrainFactor`
-- [ ] Thống nhất `processingTime`
-- [ ] Thống nhất đơn vị nội bộ
+- [x] Thống nhất nghĩa của `bandwidth`
+- [x] Thống nhất `queueDelay`
+- [x] Thống nhất `currentLoad`
+- [x] Thống nhất `MTU`
+- [x] Thống nhất `terrainFactor`
+- [x] Thống nhất `processingTime`
+- [x] Thống nhất đơn vị nội bộ
 
 ```text
 size       → byte
@@ -129,8 +127,8 @@ delay      → second
 
 ### Kiểm tra
 
-- [ ] Hai bạn giải thích giống nhau khi hỏi cùng một thuật ngữ
-- [ ] Không có file nào dùng đơn vị khác mà không chuyển đổi
+- [x] Hai bạn giải thích giống nhau khi hỏi cùng một thuật ngữ
+- [x] Không có file nào dùng đơn vị khác mà không chuyển đổi
 
 ---
 
@@ -138,25 +136,25 @@ delay      → second
 
 ### Việc cần làm
 
-- [ ] Vẽ 6–8 node
-- [ ] Ghi tên node
-- [ ] Ghi các edge
-- [ ] Ghi cost cáp
-- [ ] Ghi bandwidth
-- [ ] Ghi queue
-- [ ] Ghi MTU
-- [ ] Tính tay MST
-- [ ] Tính tay route
+- [x] Vẽ 6–8 node
+- [x] Ghi tên node
+- [x] Ghi các edge
+- [x] Ghi cost cáp
+- [x] Ghi bandwidth
+- [x] Ghi queue
+- [x] Ghi MTU
+- [x] Tính tay MST
+- [x] Tính tay route
 ### Kiểm tra
-- [ ] Có đáp án chuẩn để cuối tuần 2–3 đối chiếu
-- [ ] Có thể giải thích vì sao cạnh được chọn/bị loại
+- [x] Có đáp án chuẩn để cuối tuần 2–3 đối chiếu
+- [x] Có thể giải thích vì sao cạnh được chọn/bị loại
 ---
 ## Task 1.3 – Tạo repository
-- [ ] Tạo Git repository
-- [ ] Tạo branch `develop`
-- [ ] Tạo branch riêng cho Quyến
-- [ ] Tạo branch riêng cho Ý
-- [ ] Tạo khung thư mục
+- [x] Tạo Git repository
+- [x] Tạo branch `develop`
+- [x] Tạo branch riêng cho Quyến
+- [x] Tạo branch riêng cho Ý
+- [x] Tạo khung thư mục
 ---
 
 ## Task 1.4 – Chốt struct
@@ -169,9 +167,9 @@ Packet.h
 Config.h
 ```
 ### Kiểm tra
-- [ ] Không duplicate struct
-- [ ] Cả Quyến/Ý compile cùng API
-- [ ] Không tự thêm field làm thay đổi contract mà chưa thống nhất
+- [x] Không duplicate struct
+- [x] Cả Quyến/Ý compile cùng API
+- [x] Không tự thêm field làm thay đổi contract mà chưa thống nhất
 --
 # 6.2. 👨‍💻 QUYẾN – TUẦN 1
 
@@ -717,12 +715,12 @@ MST + Backup
 
 ## Cả hai
 
-- [ ] T01
-- [ ] T02
-- [ ] T03
-- [ ] T04
-- [ ] T05
-- [ ] Backup có trong report
+- [x] T01
+- [x] T02
+- [x] T03
+- [x] T04
+- [x] T05
+- [x] Backup có trong report
 
 ### Đối chiếu mạng mẫu
 
@@ -1058,11 +1056,11 @@ newConnection = true
 
 ## Test
 
-- [ ] T06
-- [ ] T07
-- [ ] T08
-- [ ] T09
-- [ ] T10
+- [x] T06
+- [x] T07
+- [x] T08
+- [x] T09
+- [x] T10
 
 ```text
 week3-done
@@ -1118,10 +1116,10 @@ Với model chuẩn:
 
 ### Kiểm tra
 
-- [ ] Load hợp lệ
-- [ ] Penalty không âm
-- [ ] Load = 1 không vượt max model
-- [ ] ⚠️ CHÚ Ý DRY: Hàm `DelayModel::calcQueueDelay()` của Ý phải gọi hàm này của Quyến, không được để 2 nơi cùng tính penalty.
+- [x] Load hợp lệ
+- [x] Penalty không âm
+- [x] Load = 1 không vượt max model
+- [x] ⚠️ CHÚ Ý DRY: Hàm `DelayModel::calcQueueDelay()` của Ý phải gọi hàm này của Quyến, không được để 2 nơi cùng tính penalty.
 
 ---
 
@@ -1152,9 +1150,9 @@ Cost trung tính.
 
 ### Kiểm tra
 
-- [ ] Weight ở `Config.h`
-- [ ] Không hard-code trong function
-- [ ] Đổi weight → route có thể đổi
+- [x] Weight ở `Config.h`
+- [x] Không hard-code trong function
+- [x] Đổi weight → route có thể đổi
 
 ---
 
@@ -1176,10 +1174,10 @@ fragmentPenalty
 
 ### Kiểm tra
 
-- [ ] Link DOWN → INF
-- [ ] DF vượt MTU → INF
-- [ ] Weight không âm
-- [ ] Không NaN
+- [x] Link DOWN → INF
+- [x] DF vượt MTU → INF
+- [x] Weight không âm
+- [x] Không NaN
 
 ---
 
@@ -1224,10 +1222,10 @@ Dijkstra chạy trên trạng thái cố định trong một lần tính.
 
 ### Việc cần làm
 
-- [ ] Copy isUp
-- [ ] Copy load
-- [ ] Copy queueDelay
-- [ ] Return snapshot
+- [x] Copy isUp
+- [x] Copy load
+- [x] Copy queueDelay
+- [x] Return snapshot
 
 ### Kiểm tra
 
@@ -1248,9 +1246,9 @@ struct ScenarioEvent {
 
 ### Kiểm tra
 
-- [ ] Event có type
-- [ ] Có target
-- [ ] Có time
+- [x] Event có type
+- [x] Có target
+- [x] Có time
 
 ---
 
@@ -1265,9 +1263,9 @@ DELAY_UPDATE
 
 ### Kiểm tra
 
-- [ ] Đúng target
-- [ ] Đúng value
-- [ ] Đúng thời gian
+- [x] Đúng target
+- [x] Đúng value
+- [x] Đúng thời gian
 
 ---
 
@@ -1275,12 +1273,12 @@ DELAY_UPDATE
 
 ### Làm
 
-- [ ] Duyệt path
-- [ ] Tính 4 delay (⚠️ CHÚ Ý DRY: BẮT BUỘC gọi `DelayModel::calculateTotalDelay()`, KHÔNG tự bóc tách tính toán lại công thức)
-- [ ] Kiểm tra MTU
-- [ ] Tính fragmentation
-- [ ] Cộng TCP overhead một lần
-- [ ] Tạo SimulationResult
+- [x] Duyệt path
+- [x] Tính 4 delay (⚠️ CHÚ Ý DRY: BẮT BUỘC gọi `DelayModel::calculateTotalDelay()`, KHÔNG tự bóc tách tính toán lại công thức)
+- [x] Kiểm tra MTU
+- [x] Tính fragmentation
+- [x] Cộng TCP overhead một lần
+- [x] Tạo SimulationResult
 
 ---
 
@@ -1304,9 +1302,9 @@ currentLoad *= LOAD_DECAY
 
 ### Kiểm tra
 
-- [ ] Load không vượt 1
-- [ ] Nhiều packet → load tăng
-- [ ] Có thể giảm theo decay
+- [x] Load không vượt 1
+- [x] Nhiều packet → load tăng
+- [x] Có thể giảm theo decay
 
 ---
 
@@ -1322,8 +1320,8 @@ mtu.txt
 
 ### Kiểm tra
 
-- [ ] Thay scenario không cần sửa code
-- [ ] Chạy cùng scenario 2 lần → output tái lập
+- [x] Thay scenario không cần sửa code
+- [x] Chạy cùng scenario 2 lần → output tái lập
 
 ---
 
@@ -1331,24 +1329,24 @@ mtu.txt
 
 ## Quyến
 
-- [ ] Congestion
-- [ ] QoS
-- [ ] Dynamic routing cost
-- [ ] Dijkstra integration
+- [x] Congestion
+- [x] QoS
+- [x] Dynamic routing cost
+- [x] Dijkstra integration
 
 ## Ý
 
-- [ ] Snapshot
-- [ ] Scenario
-- [ ] Event
-- [ ] Send packet
-- [ ] Update load
+- [x] Snapshot
+- [x] Scenario
+- [x] Event
+- [x] Send packet
+- [x] Update load
 
 ## Test
 
-- [ ] T11
-- [ ] T12
-- [ ] T13
+- [x] T11
+- [x] T12
+- [x] T13
 
 ### Demo
 
@@ -1366,8 +1364,8 @@ Load:
 0.20 → 0.95
 ```
 
-- [ ] Penalty tăng mạnh
-- [ ] Route có thể đổi
+- [x] Penalty tăng mạnh
+- [x] Route có thể đổi
 
 ```text
 week4-done
@@ -1388,8 +1386,6 @@ Reroute nếu cần
  ↓
 Không có route → DROP
 ```
-
-STP là **phần mở rộng**, không phải phần lõi bắt buộc nếu tiến độ không đủ.
 
 ---
 
@@ -1538,45 +1534,6 @@ H1 → R1 → R3 → R4 → H2
 
 ---
 
-## Task B5.4 – STP (MỞ RỘNG)
-
-### File
-
-```text
-include/STPSimulator.h
-src/STPSimulator.cpp
-```
-
-### Hàm
-
-```cpp
-buildForwardingTree()
-blockRedundantEdges()
-```
-
-### Logic
-
-```text
-Redundant edge
-→ BLOCKING
-```
-
-Nhưng:
-
-```text
-physical UP
-logical BLOCKING
-```
-
-Khi forwarding link down:
-
-```text
-backup
-→ FORWARDING
-```
-
----
-
 # 10.3. ✅ CHECKPOINT TUẦN 5
 
 ## Quyến
@@ -1592,14 +1549,12 @@ backup
 - [ ] Failure scenario
 - [ ] Backup analysis
 - [ ] Failure report
-- [ ] STP nếu còn thời gian
 
 ## Test
 
 - [ ] T14
 - [ ] T15
 - [ ] T16
-- [ ] T17 nếu làm STP
 
 ### Kịch bản bắt buộc
 
@@ -1982,7 +1937,6 @@ T01 → T20
 | Failure TXT | Ý | Scenario chạy |
 | Backup analysis | Ý | Backup hợp lệ |
 | Failure report | Ý | Old/New path |
-| STP | Ý | Blocking/Forwarding |
 
 ## Tuần 6
 
@@ -2019,8 +1973,8 @@ T01 → T20
 | T14 | Failure | Broken path reroutes |
 | T15 | Disconnected | No route → DROP |
 | T16 | Backup | Backup restore path |
-| T17 | STP | Redundant edge BLOCKING |
-| T18 | Scenario | TXT event apply |
+| T17 | Scenario Event | TXT event apply đúng |
+| T18 | Multi Failure | Reroute qua nhiều sự cố |
 | T19 | Performance | Runtime recorded |
 | T20 | Regression | Test cũ vẫn pass |
 
@@ -2207,7 +2161,7 @@ Dynamic Routing
 
 WEEK 5
 Quyến → Failure + Reroute + Reliability
-Ý → Failure Scenario + Backup Analysis + STP
+Ý → Failure Scenario + Backup Analysis + Failure Report
         ↓
 Fault Tolerance
 

@@ -183,3 +183,42 @@ bool IOManager::loadPackets(const std::string& filepath, std::vector<Packet>& pa
     }
     return true;
 }
+
+bool IOManager::loadScenario(const std::string& filepath, Scenario& scenario) {
+    std::ifstream file(filepath);
+    if (!file.is_open()) {
+        std::cerr << "Lỗi: Không thể mở file " << filepath << "\n";
+        return false;
+    }
+
+    // Gán tên kịch bản từ tên file
+    scenario.name = filepath;
+    scenario.events.clear();
+
+    std::string line;
+    int lineCount = 0;
+    while (std::getline(file, line)) {
+        lineCount++;
+        if (isSkippableLine(line)) continue;
+
+        std::stringstream ss(line);
+        ScenarioEvent ev;
+        std::string evTypeStr;
+
+        // Định dạng file: [Time] [EventType] [TargetEdgeId] [Value]
+        if (!(ss >> ev.time >> evTypeStr >> ev.targetId >> ev.value)) {
+            std::cerr << "Lỗi sai format dòng " << lineCount << " trong " << filepath << "\n";
+            continue;
+        }
+
+        try {
+            ev.eventType = stringToEventType(evTypeStr);
+        } catch (const std::exception& e) {
+            std::cerr << "Lỗi dữ liệu Enum dòng " << lineCount << ": " << e.what() << "\n";
+            continue;
+        }
+
+        scenario.events.push_back(ev);
+    }
+    return true;
+}
