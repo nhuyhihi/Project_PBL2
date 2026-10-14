@@ -1486,11 +1486,11 @@ MST + backup
 
 ### Tạo case
 
-- [ ] Link trên path DOWN
-- [ ] Link ngoài path DOWN
-- [ ] Bridge DOWN
-- [ ] Multiple failures
-- [ ] LINK_UP phục hồi
+- [x] Link trên path DOWN
+- [x] Link ngoài path DOWN
+- [x] Bridge DOWN
+- [x] Multiple failures
+- [x] LINK_UP phục hồi
 
 ---
 
@@ -1500,10 +1500,10 @@ MST + backup
 
 Nếu chọn cách nâng cao:
 
-- [ ] Tách graph khi remove tree edge
-- [ ] Tìm edge nối hai phía
-- [ ] Chọn backup phù hợp
-- [ ] Ghi lại lý do chọn
+- [x] Tách graph khi remove tree edge
+- [x] Tìm edge nối hai phía
+- [x] Chọn backup phù hợp
+- [x] Ghi lại lý do chọn
 
 ---
 
@@ -1532,6 +1532,10 @@ New:
 H1 → R1 → R3 → R4 → H2
 ```
 
+- [x] Đã hoàn thành hàm `printFailureRecoveryReport`
+- [x] Định dạng chuẩn: OLD PATH -> FAILED EDGE -> NEW PATH
+- [x] Báo cáo chi tiết các trường hợp Reroute thành công và DROP khi mất liên lạc
+
 ---
 
 # 10.3. ✅ CHECKPOINT TUẦN 5
@@ -1546,9 +1550,9 @@ H1 → R1 → R3 → R4 → H2
 
 ## Ý
 
-- [ ] Failure scenario
-- [ ] Backup analysis
-- [ ] Failure report
+- [x] Failure scenario
+- [x] Backup analysis
+- [x] Failure report
 
 ## Test
 

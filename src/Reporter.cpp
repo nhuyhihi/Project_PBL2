@@ -184,4 +184,56 @@ void printPacketRouteReport(const Graph& graph, const std::vector<Packet>& packe
     std::cout << "==============================================================\n";
 }
 
+static std::string formatPathString(const PathResult& path) {
+    if (!path.reachable || path.nodes.empty()) return "KHONG CO DUONG (UNREACHABLE)";
+    std::string s = "";
+    for (size_t i = 0; i < path.nodes.size(); ++i) {
+        s += std::to_string(path.nodes[i]);
+        if (i + 1 < path.nodes.size()) s += " -> ";
+    }
+    return s;
+}
+
+void printFailureRecoveryReport(const Graph& graph,
+                                const Packet& pkt,
+                                const PathResult& oldPath,
+                                int failedEdgeId,
+                                const PathResult& newPath,
+                                const std::string& note) {
+    std::cout << "\n==============================================================\n";
+    std::cout << "           BAO CAO SU CO & DINH TUYEN LAI (TASK B5.3)         \n";
+    std::cout << "==============================================================\n";
+    std::cout << "Packet ID    : #" << pkt.id << " (" << pkt.source << " -> " << pkt.destination << ")\n";
+    
+    // OLD PATH
+    std::cout << "OLD PATH     : " << formatPathString(oldPath);
+    if (oldPath.reachable) {
+        std::cout << " (Hops: " << oldPath.hopCount << ", Cost: " << std::fixed << std::setprecision(6) << oldPath.totalCost << ")";
+    }
+    std::cout << "\n";
+
+    // FAILED EDGE
+    std::cout << "FAILED EDGE  : ";
+    if (graph.hasEdge(failedEdgeId)) {
+        const Edge& e = graph.getEdge(failedEdgeId);
+        std::cout << "Edge #" << failedEdgeId << " (" << e.u << " - " << e.v << ") bi LINK_DOWN\n";
+    } else {
+        std::cout << "Edge #" << failedEdgeId << " (Unknown edge)\n";
+    }
+
+    // NEW PATH
+    std::cout << "NEW PATH     : " << formatPathString(newPath);
+    if (newPath.reachable) {
+        std::cout << " (Hops: " << newPath.hopCount << ", Cost: " << std::fixed << std::setprecision(6) << newPath.totalCost << ")\n";
+        std::cout << "KET QUA      : [THANH CONG] Da tim duong thay the thanh cong.\n";
+    } else {
+        std::cout << "\nKET QUA      : [DROP] Khong the dinh tuyen den dich (Bi co lap / Mat lien lac hoan toan).\n";
+    }
+
+    if (!note.empty()) {
+        std::cout << "GHI CHU      : " << note << "\n";
+    }
+    std::cout << "==============================================================\n";
+}
+
 } // namespace Reporter

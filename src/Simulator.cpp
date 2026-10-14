@@ -38,8 +38,17 @@ void Simulator::applyEvent(Graph& graph, const ScenarioEvent& event) {
                 targetEdge.queueDelay = std::max(0.0, event.value);
                 break;
 
+            case EventType::LINK_DOWN:
+                // Làm đứt/hỏng đường truyền vật lý
+                targetEdge.isUp = false;
+                break;
+
+            case EventType::LINK_UP:
+                // Phục hồi lại kết nối của cáp
+                targetEdge.isUp = true;
+                break;
+
             default:
-                // Các sự kiện khác (ví dụ LINK_DOWN, LINK_UP) sẽ được xử lý ở Tuần 5
                 break;
         }
     } catch (const std::exception& e) {

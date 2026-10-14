@@ -19,6 +19,15 @@ namespace Reporter {
     // 3. Bài toán Mô phỏng truyền gói tin (Data Transmission & Delay)
     // Voi moi Packet, dung Dijkstra tim duong di, roi cong don do tre tung chang.
     void printPacketRouteReport(const Graph& graph, const std::vector<Packet>& packets, const WeightFn& weight = lengthWeight);
+
+    // 4. Báo cáo xử lý sự cố & Định tuyến lại (Task B5.3)
+    // Hiển thị OLD PATH -> FAILED EDGE -> NEW PATH theo đúng mẫu chuẩn README
+    void printFailureRecoveryReport(const Graph& graph,
+                                    const Packet& pkt,
+                                    const PathResult& oldPath,
+                                    int failedEdgeId,
+                                    const PathResult& newPath,
+                                    const std::string& note = "");
 }
 
 #endif
