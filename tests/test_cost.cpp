@@ -6,6 +6,7 @@
 #include "IOManager.h"
 #include "CostModel.h"
 #include "Config.h"
+#include "EnumUtils.h"
 
 // Hàm tiện ích để so sánh số thực
 bool isClose(double a, double b) {
@@ -75,6 +76,18 @@ int main() {
     } else {
         std::cout << "  => [FAIL]\n\n";
         allPassed = false;
+    }
+
+    // --- TEST LOẠI CÁP LẠ / INVALID MEDIA TYPE ---
+    MediaType dummyMedia;
+    assert(!EnumUtils::parseMediaType("UNKNOWN_CABLE", dummyMedia));
+    std::cout << "[PASS] EnumUtils::parseMediaType tu choi loai cap la 'UNKNOWN_CABLE' chinh xac.\n\n";
+
+    try {
+        IOManager::stringToMediaType("UNKNOWN_CABLE");
+        assert(false && "Loi: Phai nem std::invalid_argument khi gap loai cap la");
+    } catch (const std::invalid_argument& e) {
+        std::cout << "[PASS] IOManager::stringToMediaType nem ngoai le chinh xac khi gap loai cap la: " << e.what() << "\n\n";
     }
 
     if (allPassed) {

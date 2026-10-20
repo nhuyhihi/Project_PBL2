@@ -1715,11 +1715,12 @@ report
 
 ### Không được đặt trong main
 
-- [ ] Kruskal loop
-- [ ] Dijkstra priority queue
-- [ ] Delay formula
-- [ ] QoS formula
-- [ ] Congestion formula
+- [x] Kruskal loop (đã đóng gói trong Kruskal.h/cpp)
+- [x] Dijkstra priority queue (đã đóng gói trong Dijkstra.h/cpp)
+- [x] Delay formula (đã đóng gói trong DelayModel.h/cpp)
+- [x] QoS formula (đã đóng gói trong RoutingCost.h/cpp)
+- [x] Congestion formula (đã đóng gói trong RoutingCost.h/cpp)
+- [x] Simulation pipeline (đã đóng gói trong Simulator::runScenarioSimulation)
 
 ---
 
@@ -1734,22 +1735,27 @@ report
 6. Redundancy
 ```
 
+- [x] Menu điều hướng đầy đủ 6 kịch bản mô phỏng
+- [x] Tích hợp thêm xem báo cáo quy hoạch MST và bảng định tuyến
+- [x] Tự động reset trạng thái mạng giữa các lần chạy kịch bản
+- [x] Không cần sửa code hay build lại khi chuyển kịch bản
+
 ---
 
 ## Task B6.3 – Reporter
 
 ### In được
 
-- [ ] MST
-- [ ] Cabling cost
-- [ ] Backup cost
-- [ ] Path
-- [ ] Delay
-- [ ] Hop
-- [ ] Fragment
-- [ ] Packet status
-- [ ] Failure
-- [ ] Old/New path
+- [x] MST
+- [x] Cabling cost
+- [x] Backup cost
+- [x] Path
+- [x] Delay
+- [x] Hop
+- [x] Fragment
+- [x] Packet status
+- [x] Failure
+- [x] Old/New path
 
 ---
 
@@ -1766,9 +1772,9 @@ redundancy
 
 ### Kiểm tra
 
-- [ ] Mỗi bộ có mục đích riêng
-- [ ] Có expected result
-- [ ] Chạy được không sửa source
+- [x] Mỗi bộ có mục đích riêng
+- [x] Có expected result
+- [x] Chạy được không sửa source
 
 ---
 
@@ -1776,23 +1782,19 @@ redundancy
 
 Xuất:
 
-```text
-.txt
-```
+- [x] `.txt` (Đã lưu tại `data/logs/log_<scenario>.txt`)
 
 ### Log
 
-```text
-packet
-source
-destination
-path
-delay
-hop
-fragment
-status
-failure
-```
+- [x] packet
+- [x] source
+- [x] destination
+- [x] path
+- [x] delay
+- [x] hop
+- [x] fragment
+- [x] status
+- [x] failure
 
 ---
 
@@ -1809,19 +1811,19 @@ docs/demo/
 
 ### Nội dung
 
-- [ ] Architecture
-- [ ] 11-step flow
-- [ ] Formulas
-- [ ] Kruskal
-- [ ] Dijkstra
-- [ ] MTU
-- [ ] TCP/UDP
-- [ ] QoS
-- [ ] Congestion
-- [ ] Failure
-- [ ] Backup
-- [ ] Test result
-- [ ] Demo result
+- [x] Architecture
+- [x] 11-step flow
+- [x] Formulas
+- [x] Kruskal
+- [x] Dijkstra
+- [x] MTU
+- [x] TCP/UDP
+- [x] QoS
+- [x] Congestion
+- [x] Failure
+- [x] Backup
+- [x] Test result
+- [x] Demo result
 
 ---
 

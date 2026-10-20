@@ -1,5 +1,6 @@
 #include "IOManager.h"
 #include "Validation.h"
+#include "EnumUtils.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -18,37 +19,32 @@ bool IOManager::isSkippableLine(const std::string& line) {
 }
 
 NodeType IOManager::stringToNodeType(const std::string& str) {
-    if (str == "ROUTER") return NodeType::ROUTER;
-    if (str == "HOST") return NodeType::HOST;
-    if (str == "SWITCH") return NodeType::SWITCH;
+    NodeType type;
+    if (EnumUtils::parseNodeType(str, type)) return type;
     throw std::invalid_argument("Unknown NodeType: " + str);
 }
 
 MediaType IOManager::stringToMediaType(const std::string& str) {
-    if (str == "FIBER") return MediaType::FIBER;
-    if (str == "COPPER") return MediaType::COPPER;
-    if (str == "WIRELESS") return MediaType::WIRELESS;
+    MediaType media;
+    if (EnumUtils::parseMediaType(str, media)) return media;
     throw std::invalid_argument("Unknown MediaType: " + str);
 }
 
 Protocol IOManager::stringToProtocol(const std::string& str) {
-    if (str == "TCP") return Protocol::TCP;
-    if (str == "UDP") return Protocol::UDP;
+    Protocol proto;
+    if (EnumUtils::parseProtocol(str, proto)) return proto;
     throw std::invalid_argument("Unknown Protocol: " + str);
 }
 
 PacketType IOManager::stringToPacketType(const std::string& str) {
-    if (str == "REAL_TIME") return PacketType::REAL_TIME;
-    if (str == "BULK_DATA") return PacketType::BULK_DATA;
-    if (str == "CONTROL") return PacketType::CONTROL;
+    PacketType pktType;
+    if (EnumUtils::parsePacketType(str, pktType)) return pktType;
     throw std::invalid_argument("Unknown PacketType: " + str);
 }
 
 EventType IOManager::stringToEventType(const std::string& str) {
-    if (str == "LINK_DOWN") return EventType::LINK_DOWN;
-    if (str == "LINK_UP") return EventType::LINK_UP;
-    if (str == "LOAD_UPDATE") return EventType::LOAD_UPDATE;
-    if (str == "DELAY_UPDATE") return EventType::DELAY_UPDATE;
+    EventType evType;
+    if (EnumUtils::parseEventType(str, evType)) return evType;
     throw std::invalid_argument("Unknown EventType: " + str);
 }
 
@@ -88,7 +84,10 @@ bool IOManager::loadNodes(const std::string& filepath, Graph& graph) {
             continue;
         }
 
-        graph.addNode(node);
+        if (!graph.addNode(node)) {
+            std::cerr << "REJECT Node ID " << node.id << ": ID đã tồn tại trong đồ thị\n";
+            continue;
+        }
     }
     return true;
 }
@@ -132,12 +131,15 @@ bool IOManager::loadEdges(const std::string& filepath, Graph& graph) {
             continue;
         }
 
-        graph.addEdge(edge);
+        if (!graph.addEdge(edge)) {
+            std::cerr << "REJECT Edge ID " << edge.id << ": Cạnh trùng ID hoặc tự nối chính nó\n";
+            continue;
+        }
     }
     return true;
 }
 
-bool IOManager::loadPackets(const std::string& filepath, std::vector<Packet>& packets) {
+bool IOManager::loadPackets(const std::string& filepath, std::vector<Packet>& packets, const Graph* graph) {
     std::ifstream file(filepath);
     if (!file.is_open()) {
         std::cerr << "Lỗi: Không thể mở file " << filepath << "\n";
@@ -174,7 +176,9 @@ bool IOManager::loadPackets(const std::string& filepath, std::vector<Packet>& pa
         pkt.newConnection = (newConn != 0);
 
         std::string reason;
-        if (!Validation::isValidPacket(pkt, reason)) {
+        bool valid = graph ? Validation::isValidPacket(pkt, *graph, reason)
+                           : Validation::isValidPacket(pkt, reason);
+        if (!valid) {
             std::cerr << "REJECT Packet ID " << pkt.id << ": " << reason << "\n";
             continue;
         }

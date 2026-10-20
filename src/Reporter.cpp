@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <string>
 #include "DelayModel.h"
+#include "EnumUtils.h"
 
 namespace Reporter {
 
@@ -50,8 +51,7 @@ void printMSTReport(const Graph& graph, const CostModel& costModel) {
             totalMSTBackup += cost;
         }
 
-        std::string mediaStr = (edge.mediaType == MediaType::FIBER) ? "FIBER" : 
-                               ((edge.mediaType == MediaType::COPPER) ? "COPPER" : "WIRELESS");
+        std::string mediaStr = EnumUtils::toString(edge.mediaType);
         
         std::string uv = std::to_string(edge.u) + "-" + std::to_string(edge.v);
 
@@ -156,27 +156,44 @@ void printPacketRouteReport(const Graph& graph, const std::vector<Packet>& packe
         }
         std::cout << "\n";
 
-        // Buoc 2: di doc duong do, cong don do tre tung chang
+        // Buoc 2: di doc duong do, kiem tra MTU, phan manh va cong don do tre tung chang
         double totalDelay = 0.0;
         bool dropped = false;
+        std::string dropReason = "";
+        int maxFragments = 1;
         int cur = pkt.source;
         for (int edgeId : path.edges) {
             const Edge& e = graph.getEdge(edgeId);
             int nextId = graph.otherEndpoint(cur, edgeId);
             const Node& nextNode = graph.getNode(nextId);
 
-            double d = DelayModel::calculateTotalDelay(pkt, e, nextNode);
-            if (d == Config::INF) {
-                std::cout << "  => Goi tin bi ROT tai edge " << edgeId
-                          << " (day dut hoac qua kho MTU khong the phan manh)\n";
+            int fragments = DelayModel::calcFragmentCount(pkt.sizeBytes, e.mtu, pkt.canFragment);
+            if (fragments == 0) {
                 dropped = true;
+                dropReason = "DF_BLOCKED_BY_MTU_AT_EDGE_" + std::to_string(edgeId);
+                break;
+            }
+            maxFragments = std::max(maxFragments, fragments);
+
+            double d = DelayModel::calculateHopDelay(pkt, e, nextNode);
+            if (d == Config::INF) {
+                dropped = true;
+                dropReason = "LINK_DOWN_OR_UNREACHABLE";
                 break;
             }
             totalDelay += d;
             cur = nextId;
         }
 
-        if (!dropped) {
+        if (pkt.protocol == Protocol::TCP) {
+            totalDelay += DelayModel::calcProtocolOverhead(pkt, totalDelay);
+        }
+
+        std::cout << "  So manh Fragment     : " << maxFragments << " manh\n";
+        if (dropped) {
+            std::cout << "  Trang thai Packet    : DROP (" << dropReason << ")\n";
+        } else {
+            std::cout << "  Trang thai Packet    : SUCCESS\n";
             std::cout << "  Tong do tre uoc tinh : " << std::fixed << std::setprecision(6)
                       << totalDelay << " s\n";
         }

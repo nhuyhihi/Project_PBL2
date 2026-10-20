@@ -16,8 +16,8 @@ public:
     // Đọc danh sách Edge từ file
     static bool loadEdges(const std::string& filepath, Graph& graph);
     
-    // Đọc danh sách Packet từ file
-    static bool loadPackets(const std::string& filepath, std::vector<Packet>& packets);
+    // Đọc danh sách Packet từ file (có thể truyền Graph để kiểm tra node nguồn/đích)
+    static bool loadPackets(const std::string& filepath, std::vector<Packet>& packets, const Graph* graph = nullptr);
     
     // Đọc kịch bản sự kiện (Scenario) từ file (Task B4.3, B4.7)
     static bool loadScenario(const std::string& filepath, Scenario& scenario);

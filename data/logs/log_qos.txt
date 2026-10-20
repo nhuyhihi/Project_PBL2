@@ -1,0 +1,18 @@
+========================================================================================================
+                               NHAT KY MO PHONG MANG (SIMULATION LOG)                                   
+Kich ban (Scenario) : data/scenarios/qos.txt
+Tong so ban ghi log : 8
+========================================================================================================
+
+Time(s) Packet  Src   Dst   Hop   Frag    Delay(s)    Status    Path                Failure / Note              
+--------------------------------------------------------------------------------------------------------
+0.0     #0      0     3     2     1       0.002233    SUCCESS   0->1->3             DELAY_UPDATE Edge #2
+0.0     #1      0     3     2     3       0.021316    SUCCESS   0->1->3             DELAY_UPDATE Edge #2
+1.5     #0      0     3     2     1       0.002233    SUCCESS   0->1->3             DELAY_UPDATE Edge #2
+1.5     #1      0     3     2     3       0.021316    SUCCESS   0->1->3             DELAY_UPDATE Edge #2
+3.0     #0      0     3     2     1       0.002233    SUCCESS   0->1->3             DELAY_UPDATE Edge #2
+3.0     #1      0     3     2     3       0.021316    SUCCESS   0->1->3             DELAY_UPDATE Edge #2
+4.5     #0      0     3     2     1       0.002233    SUCCESS   0->1->3             DELAY_UPDATE Edge #2
+4.5     #1      0     3     2     3       0.021316    SUCCESS   0->1->3             DELAY_UPDATE Edge #2
+--------------------------------------------------------------------------------------------------------
+Ket thuc nhat ky mo phong.

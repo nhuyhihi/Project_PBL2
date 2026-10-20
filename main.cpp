@@ -1,120 +1,139 @@
 #include <iostream>
 #include <vector>
+#include <string>
 #include "Graph.h"
 #include "IOManager.h"
 #include "Kruskal.h"
 #include "CostModel.h"
 #include "Reporter.h"
 #include "Simulator.h"
-#include "RoutingCost.h"
-#include <iomanip>
+#include "Scenario.h"
+
+void displayMenu() {
+    std::cout << "\n==============================================================\n";
+    std::cout << "        DO AN PBL2: THIET KE & MO PHONG MANG VIEN THONG       \n";
+    std::cout << "                 MENU SCENARIO (TASK B6.2)                    \n";
+    std::cout << "==============================================================\n";
+    std::cout << "  [1] Scenario 1: BASIC       (Dieu kien mang ly tuong)\n";
+    std::cout << "  [2] Scenario 2: QoS         (Uu tien dich vu REAL_TIME vs BULK)\n";
+    std::cout << "  [3] Scenario 3: CONGESTION  (Tac nghen mang & tu dong ne duong)\n";
+    std::cout << "  [4] Scenario 4: MTU         (Kiem tra phan manh Fragmentation)\n";
+    std::cout << "  [5] Scenario 5: FAILURE     (Su co dut cap & tu dong reroute)\n";
+    std::cout << "  [6] Scenario 6: REDUNDANCY  (Phan tich vai tro cap Backup)\n";
+    std::cout << "  ------------------------------------------------------------\n";
+    std::cout << "  [7] Xem Bao cao Quy hoach Cap (MST & Backup Links)\n";
+    std::cout << "  [8] Xem Bang dinh tuyen toan mang (Full Routing Table)\n";
+    std::cout << "  [0] Thoat chuong trinh\n";
+    std::cout << "==============================================================\n";
+    std::cout << "Vui long chon thao tac [0-8]: ";
+}
+
+void runSelectedScenario(Graph& baseGraph, const std::vector<Packet>& packets, const std::string& scenarioFile, const std::string& logFileName = "") {
+    // Luôn copy đồ thị để mỗi lần chạy một kịch bản, mạng được bắt đầu ở trạng thái sạch ban đầu
+    Graph testGraph = baseGraph;
+
+    Scenario sc;
+    if (!IOManager::loadScenario(scenarioFile, sc)) {
+        std::cerr << "Loi: Khong the doc file kich ban " << scenarioFile << "\n";
+        return;
+    }
+
+    std::string logPath = "";
+    if (!logFileName.empty()) {
+        logPath = "data/logs/" + logFileName;
+    }
+
+    Simulator::runScenarioSimulation(testGraph, packets, sc, logPath);
+}
 
 int main() {
-    std::cout << "=== KHOI TAO DO THI ===\n";
-    Graph graph;
-    
-    std::cout << "\n--- Load Nodes ---\n";
-    if (IOManager::loadNodes("data/nodes.txt", graph)) {
-        std::cout << "=> So luong node hien tai: " << graph.V() << "\n";
-    }
-    
-    std::cout << "\n--- Load Edges ---\n";
-    if (IOManager::loadEdges("data/edges.txt", graph)) {
-        std::cout << "=> So luong edge hien tai: " << graph.E() << "\n";
-    }
-    
-    std::cout << "\n--- Load Packets ---\n";
-    std::vector<Packet> packets;
-    if (IOManager::loadPackets("data/packets.txt", packets)) {
-        std::cout << "=> So luong packet load thanh cong: " << packets.size() << "\n";
+    // 1. NẠP DỮ LIỆU CỐT LÕI VÀ KIỂM TRA HỢP LỆ
+    Graph baseGraph;
+    if (!IOManager::loadNodes("data/nodes.txt", baseGraph) ||
+        !IOManager::loadEdges("data/edges.txt", baseGraph)) {
+        std::cerr << "Loi: Khong the khoi tao do thi ban dau!\n";
+        return 1;
     }
 
-    std::cout << "=== NẠP BẢNG GIÁ (PRICING) ===\n";
+    std::vector<Packet> packets;
+    IOManager::loadPackets("data/packets.txt", packets, &baseGraph);
+
+    // 2. NẠP BẢNG GIÁ VÀ XÂY DỰNG MST + BACKUP
     CostModel pricingModel;
     pricingModel.loadPricing("data/pricing.txt");
-
-    std::cout << "\n=== TIEN HANH QUY HOACH MANG LUI (KRUSKAL) ===\n";
-    // 1. Chạy thuật toán Kruskal tìm cây khung nhỏ nhất (MST)
     auto costFn = [&pricingModel](const Edge& e) { return pricingModel.calculateCablingCost(e).total; };
-    MSTResult mstResult = buildMST(graph, costFn);
-    if (mstResult.connected) {
-        std::cout << "=> Da ket noi thanh cong toan bo mang luoi!\n";
-    } else {
-        std::cout << "=> Canh bao: Mang bi chia cat, khong the ket noi tat ca cac nut.\n";
-    }
+    
+    MSTResult mstResult = buildMST(baseGraph, costFn);
+    selectBackupLinks(baseGraph, mstResult, 2, costFn);
 
-    std::cout << "\n=== TIEN HANH TIM CAP DU PHONG ===\n";
-    BackupResult backupResult = selectBackupLinks(graph, mstResult, 2, costFn);
-    std::cout << "=> Da chon them " << backupResult.edgeIds.size() << " cap du phong.\n";
+    std::cout << "=> He thong mang da san sang: " << baseGraph.V() << " nodes, " 
+              << baseGraph.E() << " edges, " << packets.size() << " packets.\n";
 
-    std::cout << "\n=== IN BAO CAO CHI PHI VA DINH TUYEN ===\n";
-    // 3. In Báo cáo Chi phí lắp đặt 
-    Reporter::printMSTReport(graph, pricingModel);
-
-    // 4. In Bảng định tuyến (Routing Table) toàn mạng
-    Reporter::printFullRoutingTable(graph);
-
-    std::cout << "\n=== TIEN HANH MO PHONG TRUYEN GOI TIN CO BAN (SIMULATOR) ===\n";
-    // 5. Mô phỏng gửi gói tin với Snapshot và RoutingCost động (Task Tuần 4 của Quyến & Ý)
-    for (const Packet& pkt : packets) {
-        // Chụp snapshot trạng thái mạng tại thời điểm bắt đầu định tuyến (Task B4.1, B4.2)
-        NetworkSnapshot snap = Simulator::snapshotNetworkState(graph);
-
-        // Định tuyến theo chi phí động (RoutingCost) theo loại QoS (Task A4.2, A4.4)
-        PathResult path = dijkstra(graph, pkt.source, pkt.destination,
-                                    RoutingCost::makeWeightFn(pkt), /*onlyBuilt=*/true);
-        
-        std::cout << "Packet #" << pkt.id << " (" << pkt.source << " -> " << pkt.destination 
-                  << ", " << pkt.sizeBytes << " bytes, Type: " << (pkt.type == PacketType::REAL_TIME ? "REAL_TIME" : (pkt.type == PacketType::BULK_DATA ? "BULK_DATA" : "CONTROL")) << "):\n";
-        
-        if (path.reachable) {
-            std::cout << "  -> Route Dijkstra chon: ";
-            for (size_t i = 0; i < path.nodes.size(); ++i) {
-                std::cout << path.nodes[i] << (i + 1 < path.nodes.size() ? " -> " : "");
-            }
-            std::cout << "\n";
+    // 3. VÒNG LẶP MENU TƯƠNG TÁC (TASK B6.2)
+    std::string inputLine;
+    while (true) {
+        displayMenu();
+        if (!std::getline(std::cin, inputLine)) {
+            std::cout << "\n[EOF] Ket thuc chuong trinh.\n";
+            break;
         }
 
-        // Mô phỏng gửi gói tin (Task B4.5, B4.6)
-        SimulationResult res = Simulator::sendPacket(pkt, path, graph);
-        
-        if (res.success) {
-            std::cout << "  => SUCCESS! Thoi gian truyen: " << std::fixed << std::setprecision(6) << res.totalDelay 
-                      << " s (Phan manh: " << res.fragmentCount << " manh)\n";
-        } else {
-            std::cout << "  => DROP! Ly do: " << res.failReason << "\n";
+        // Loại bỏ khoảng trắng và \r thừa nếu có (đặc biệt khi pipe trên Windows)
+        while (!inputLine.empty() && (inputLine.back() == '\r' || inputLine.back() == ' ' || inputLine.back() == '\t')) {
+            inputLine.pop_back();
         }
+        while (!inputLine.empty() && (inputLine.front() == ' ' || inputLine.front() == '\t')) {
+            inputLine.erase(inputLine.begin());
+        }
+
+        if (inputLine.empty()) continue;
+
+        int choice = -1;
+        try {
+            choice = std::stoi(inputLine);
+        } catch (...) {
+            choice = -1;
+        }
+
+        if (choice == 0) {
+            std::cout << "\nCam on ban da su dung chuong trinh! Tam biet!\n";
+            break;
+        }
+
+        switch (choice) {
+            case 1:
+                runSelectedScenario(baseGraph, packets, "data/scenarios/basic.txt", "log_basic.txt");
+                break;
+            case 2:
+                runSelectedScenario(baseGraph, packets, "data/scenarios/qos.txt", "log_qos.txt");
+                break;
+            case 3:
+                runSelectedScenario(baseGraph, packets, "data/scenarios/congestion.txt", "log_congestion.txt");
+                break;
+            case 4:
+                runSelectedScenario(baseGraph, packets, "data/scenarios/mtu.txt", "log_mtu.txt");
+                break;
+            case 5:
+                runSelectedScenario(baseGraph, packets, "data/scenarios/failure.txt", "log_failure.txt");
+                break;
+            case 6:
+                runSelectedScenario(baseGraph, packets, "data/scenarios/redundancy.txt", "log_redundancy.txt");
+                break;
+            case 7:
+                Reporter::printMSTReport(baseGraph, pricingModel);
+                break;
+            case 8:
+                Reporter::printFullRoutingTable(baseGraph);
+                break;
+            default:
+                std::cout << "Lua chon khong hop le! Vui long nhap so tu 0 den 8.\n";
+                break;
+        }
+
+        std::cout << "\nNhan Enter de tiep tuc...";
+        std::string pauseLine;
+        std::getline(std::cin, pauseLine);
     }
 
-    std::cout << "\n=== DEMO KICH BAN SU KIEN DONG (SCENARIO SIMULATION) ===\n";
-    // 6. Nạp kịch bản tắc nghẽn (data/scenarios/congestion.txt) và áp dụng sự kiện (Task B4.3, B4.4, B4.7)
-    Scenario congestionScenario;
-    if (IOManager::loadScenario("data/scenarios/congestion.txt", congestionScenario)) {
-        std::cout << "-> Da nap kich ban: " << congestionScenario.name 
-                  << " voi " << congestionScenario.events.size() << " su kien.\n";
-
-        // Thực thi từng sự kiện trong kịch bản để thấy tác động động
-        for (const auto& ev : congestionScenario.events) {
-            std::cout << "\n[Time = " << ev.time << "s] Ap dung su kien vao Edge #" << ev.targetId 
-                      << " (Load moi: " << ev.value << "):\n";
-            
-            Simulator::applyEvent(graph, ev);
-            
-            // Thử định tuyến lại cho gói tin REAL_TIME đầu tiên để xem route có đổi không
-            if (!packets.empty()) {
-                const Packet& testPkt = packets[0];
-                PathResult newPath = dijkstra(graph, testPkt.source, testPkt.destination,
-                                              RoutingCost::makeWeightFn(testPkt), /*onlyBuilt=*/true);
-                
-                std::cout << "  -> Route moi cho Packet #" << testPkt.id << " (" << testPkt.source << " -> " << testPkt.destination << "): ";
-                for (size_t i = 0; i < newPath.nodes.size(); ++i) {
-                    std::cout << newPath.nodes[i] << (i + 1 < newPath.nodes.size() ? " -> " : "");
-                }
-                std::cout << " (Cost: " << std::fixed << std::setprecision(6) << newPath.totalCost << ")\n";
-            }
-        }
-    }
-
-    std::cout << "\n=== KET THUC CHUONG TRINH ===\n";
     return 0;
 }

@@ -1,0 +1,6 @@
+# Scenario: Basic (Kịch bản truyền thông cơ bản - Task B6.4)
+# Định dạng: [Time] [EventType] [TargetEdgeId] [Value]
+# Mục đích: Mạng hoạt động trong điều kiện lý tưởng, tải thấp đồng đều (0.10).
+# Gói tin được truyền thông suốt theo lộ trình ngắn nhất của Dijkstra.
+
+0.0 LOAD_UPDATE 0 0.10

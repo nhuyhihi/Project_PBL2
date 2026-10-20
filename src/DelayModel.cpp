@@ -67,7 +67,7 @@ namespace DelayModel {
         return 0.0;
     }
 
-    double calculateTotalDelay(const Packet& packet, const Edge& edge, const Node& nextNode) {
+    double calculateHopDelay(const Packet& packet, const Edge& edge, const Node& nextNode) {
         if (!edge.isUp) return Config::INF;
 
         // 1. Kiểm tra phân mảnh
@@ -82,11 +82,15 @@ namespace DelayModel {
         double dQueue = calcQueueDelay(edge.queueDelay, edge.currentLoad);
 
         // Trễ truyền tải (Transmission) sẽ bị nhân lên theo số lượng mảnh
-        // Còn các trễ Prop, Proc, Queue được xem như áp dụng đồng thời dạng Pipeline cho loạt mảnh,
-        // nên độ trễ phụ trội chủ yếu nằm ở Transmission. (Công thức đơn giản hóa theo bài).
-        double oneWayDelay = (dTrans * fragments) + dProp + dProc + dQueue;
+        // Còn các trễ Prop, Proc, Queue được xem như áp dụng đồng thời dạng Pipeline cho loạt mảnh
+        return (dTrans * fragments) + dProp + dProc + dQueue;
+    }
 
-        // 3. Tính Overhead của Giao thức (TCP/UDP)
+    double calculateTotalDelay(const Packet& packet, const Edge& edge, const Node& nextNode) {
+        double oneWayDelay = calculateHopDelay(packet, edge, nextNode);
+        if (oneWayDelay == Config::INF) return Config::INF;
+
+        // 3. Tính Overhead của Giao thức (TCP/UDP) nếu xét đơn lẻ trên 1 cạnh
         double overhead = calcProtocolOverhead(packet, oneWayDelay);
 
         return oneWayDelay + overhead;

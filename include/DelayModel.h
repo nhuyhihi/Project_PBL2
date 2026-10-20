@@ -29,7 +29,10 @@ namespace DelayModel {
     //TCP / UDP Protocol Overhead
     double calcProtocolOverhead(const Packet& packet, double oneWayDelay);
 
-    // Tính tổng thể khi gói tin đi qua 1 cạnh
+    // Tính độ trễ truyền một chặng/cạnh (chưa bao gồm Protocol Overhead như TCP handshake)
+    double calculateHopDelay(const Packet& packet, const Edge& edge, const Node& nextNode);
+
+    // Tính tổng thể khi gói tin đi qua 1 cạnh (đã bao gồm Protocol Overhead nếu xét đơn lẻ 1 chặng)
     double calculateTotalDelay(const Packet& packet, const Edge& edge, const Node& nextNode);
 }
 

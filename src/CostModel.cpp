@@ -1,13 +1,17 @@
 #include "CostModel.h"
 #include "Config.h"
+#include "EnumUtils.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <stdexcept>
 
 MediaType CostModel::stringToMediaType(const std::string& str) const {
-    if (str == "FIBER") return MediaType::FIBER;
-    if (str == "COPPER") return MediaType::COPPER;
-    return MediaType::WIRELESS;
+    MediaType media;
+    if (EnumUtils::parseMediaType(str, media)) {
+        return media;
+    }
+    throw std::invalid_argument("Unknown MediaType: " + str);
 }
 
 bool CostModel::loadPricing(const std::string& filepath) {
@@ -18,7 +22,9 @@ bool CostModel::loadPricing(const std::string& filepath) {
     }
 
     std::string line;
+    int lineCount = 0;
     while (std::getline(file, line)) {
+        lineCount++;
         if (line.empty() || line[0] == '#') {
             continue;
         }
@@ -28,27 +34,31 @@ bool CostModel::loadPricing(const std::string& filepath) {
         ss >> key;
 
         if (key == "INSTALLATION_COST") {
-            ss >> config.installationCost;
-        } 
-        else if (key == "UNIT_PRICE") {
-            std::string typeStr;
-            double val;
-            if (ss >> typeStr >> val) {
-                config.unitPrice[stringToMediaType(typeStr)] = val;
+            if (!(ss >> config.installationCost)) {
+                std::cerr << "[CostModel] Canh bao dong " << lineCount << ": Sai format INSTALLATION_COST trong " << filepath << ".\n";
             }
         } 
-        else if (key == "EQUIPMENT_COST") {
+        else if (key == "UNIT_PRICE" || key == "EQUIPMENT_COST" || key == "MAINTENANCE_COST") {
             std::string typeStr;
             double val;
             if (ss >> typeStr >> val) {
-                config.equipmentCost[stringToMediaType(typeStr)] = val;
-            }
-        }
-        else if (key == "MAINTENANCE_COST") {
-            std::string typeStr;
-            double val;
-            if (ss >> typeStr >> val) {
-                config.maintenanceCost[stringToMediaType(typeStr)] = val;
+                MediaType media;
+                if (!EnumUtils::parseMediaType(typeStr, media)) {
+                    std::cerr << "[CostModel] Canh bao dong " << lineCount 
+                              << ": Loai cap khong hop le '" << typeStr 
+                              << "' trong " << filepath << ". Bo qua dong nay.\n";
+                    continue;
+                }
+                if (key == "UNIT_PRICE") {
+                    config.unitPrice[media] = val;
+                } else if (key == "EQUIPMENT_COST") {
+                    config.equipmentCost[media] = val;
+                } else {
+                    config.maintenanceCost[media] = val;
+                }
+            } else {
+                std::cerr << "[CostModel] Canh bao dong " << lineCount 
+                          << ": Sai format " << key << " trong " << filepath << ". Bo qua dong nay.\n";
             }
         }
     }
