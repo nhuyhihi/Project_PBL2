@@ -164,10 +164,7 @@ Các file trong chương này định nghĩa toàn bộ "ngôn ngữ dữ liệu
  11:     // 2. Hằng số Thuật toán 
  12:     const double INF = std::numeric_limits<double>::infinity(); // Đại diện cho đứt cáp/không liên thông
  13: 
- 14:     // 3. Hằng số Chi phí 
- 15:     const double INSTALLATION_COST = 0.0;
- 16: 
- 17:     // 4. Hằng số Vật lý mạng 
+ 14:     // 3. Hằng số Vật lý mạng 
  18:     const double SPEED_OF_LIGHT_FIBER = 2.0e8; // m/s (Trong cáp quang/cáp đồng)
  19:     const double SPEED_OF_LIGHT_AIR = 3.0e8;   // m/s (Sóng Wireless)
  20: 
@@ -276,41 +273,36 @@ Các file trong chương này định nghĩa toàn bộ "ngôn ngữ dữ liệu
  11:     double length;            // m
  12:     double bandwidthMbps;     // Mbps
  13:     double maxSegmentLength;  // m
- 14:     double unitPrice;
- 15:     double terrainFactor;
- 16:     double equipmentCost;
- 17:     double maintenanceCost;
- 18:     int mtu;                  // bytes
- 19:     
- 20:     double currentLoad;       // 0.0 to 1.0
- 21:     double queueDelay;        // seconds
- 22:     bool isUp;
- 23:     bool isBackup;
- 24:     bool isBuilt;
- 25: 
- 26:     Edge() : id(-1), u(-1), v(-1), mediaType(MediaType::COPPER), length(0.0), 
- 27:              bandwidthMbps(0.0), maxSegmentLength(0.0), unitPrice(0.0), 
- 28:              terrainFactor(1.0), equipmentCost(0.0), maintenanceCost(0.0), 
- 29:              mtu(1500), currentLoad(0.0), queueDelay(0.0), 
- 30:              isUp(true), isBackup(false), isBuilt(false) {}
- 31: };
- 32: 
- 33: #endif // EDGE_H
+ 14:     double terrainFactor;
+ 15:     int mtu;                  // bytes
+ 16:     
+ 17:     double currentLoad;       // 0.0 to 1.0
+ 18:     double queueDelay;        // seconds
+ 19:     bool isUp;
+ 20:     bool isBackup;
+ 21:     bool isBuilt;
+ 22: 
+ 23:     Edge() : id(-1), u(-1), v(-1), mediaType(MediaType::COPPER), length(0.0), 
+ 24:              bandwidthMbps(0.0), maxSegmentLength(0.0), 
+ 25:              terrainFactor(1.0), 
+ 26:              mtu(1500), currentLoad(0.0), queueDelay(0.0), 
+ 27:              isUp(true), isBackup(false), isBuilt(false) {}
+ 28: };
+ 29: 
+ 30: #endif // EDGE_H
 
 ```
 
 ### Giải thích chi tiết từng dòng code:
-* **Dòng 8-31:** `struct Edge { ... }`: Đại diện cho một đoạn cáp kết nối vật lý nối giữa 2 nút:
+* **Dòng 6-28:** `struct Edge { ... }`: Đại diện cho một đoạn cáp kết nối vật lý nối giữa 2 nút:
   - `int id`: Định danh cạnh. Trong mạng thực tế có thể có nhiều sợi cáp song song giữa 2 node (ví dụ vừa có cáp quang vừa có cáp đồng), nên việc định danh cạnh qua `id` độc lập là bắt buộc.
   - `int u, v`: ID của 2 nút mạng ở 2 đầu sợi cáp.
   - `MediaType mediaType`: Loại cáp (`FIBER`, `COPPER`, `WIRELESS`).
   - `double length`: Chiều dài vật lý của sợi cáp (đơn vị: mét).
   - `double bandwidthMbps`: Băng thông tối đa của đường cáp (đơn vị: Megabit/giây - Mbps).
   - `double maxSegmentLength`: Chiều dài đoạn truyền tối đa không cần trạm lặp (Repeater). Nếu `length > maxSegmentLength`, cáp bị loại do suy hao tín hiệu (`TOO_LONG`).
-  - `double unitPrice`: Đơn giá mua cáp trên 1 mét ($/m).
   - `double terrainFactor`: Hệ số địa hình thi công cáp ($1.0$ là bình thường, $>1.0$ là đồi núi/hiểm trở).
-  - `double equipmentCost`: Chi phí module quang/card mạng gắn ở 2 đầu nút.
-  - `double maintenanceCost`: Chi phí bảo trì định kỳ hàng năm.
+  *(Lưu ý: Toàn bộ đơn giá vật tư, thiết bị, bảo trì được quản lý tập trung và nạp độc lập từ `data/pricing.txt` qua `CostModel`, không lưu phân tán trong `Edge`)*.
   - `int mtu`: Giới hạn kích thước gói tối đa (Maximum Transmission Unit), chuẩn Ethernet là 1500 byte.
   - `double currentLoad`: Mức tải lưu lượng hiện tại ($0.0 \le \text{load} \le 1.0$).
   - `double queueDelay`: Trễ hàng đợi cơ sở của cáp khi không có tắc nghẽn (đơn vị: giây).
@@ -999,12 +991,6 @@ Chương này trình bày cách hệ thống xây dựng mô hình đồ thị m
  25:     // Kiểm tra xem dòng có nên bỏ qua hay không (dòng trống hoặc bắt đầu bằng '#')
  26:     static bool isSkippableLine(const std::string& line);
  27:     
- 28:     // Chuyển đổi String -> Enum
- 29:     static NodeType stringToNodeType(const std::string& str);
- 30:     static MediaType stringToMediaType(const std::string& str);
- 31:     static Protocol stringToProtocol(const std::string& str);
- 32:     static PacketType stringToPacketType(const std::string& str);
- 33:     static EventType stringToEventType(const std::string& str);
  34: };
  35: 
  36: #endif 
@@ -1124,10 +1110,10 @@ Chương này trình bày cách hệ thống xây dựng mô hình đồ thị m
 109:         Edge edge;
 110:         std::string mediaStr;
 111: 
-112:         // Định dạng: id u v media length bw maxSeg price terrain equip maint mtu load delay
+112:         // Định dạng mới (11 cột): id u v media length bw maxSeg terrain mtu load delay
 113:         if (!(ss >> edge.id >> edge.u >> edge.v >> mediaStr >> edge.length 
-114:                  >> edge.bandwidthMbps >> edge.maxSegmentLength >> edge.unitPrice 
-115:                  >> edge.terrainFactor >> edge.equipmentCost >> edge.maintenanceCost 
+114:                  >> edge.bandwidthMbps >> edge.maxSegmentLength 
+115:                  >> edge.terrainFactor 
 116:                  >> edge.mtu >> edge.currentLoad >> edge.queueDelay)) {
 117:             std::cerr << "Lỗi sai format dòng " << lineCount << " trong " << filepath << "\n";
 118:             continue;
@@ -1256,7 +1242,7 @@ Chương này trình bày cách hệ thống xây dựng mô hình đồ thị m
   - Gọi `Validation::isValidNode()`. Nếu sai $\to$ In `REJECT Node ID ...` ra `std::cerr` và bỏ qua.
   - Gọi `graph.addNode(node)`. Nếu trả về `false` (trùng ID) $\to$ In cảnh báo `REJECT` rõ ràng.
 * **Hàm `loadEdges(const std::string& filepath, Graph& graph)` (Dòng 96-141):**
-  - Đọc 14 trường thông số kỹ thuật của cạnh: `id`, `u`, `v`, `mediaStr`, `length`, `bw`, `maxSeg`, `price`, `terrain`, `equip`, `maint`, `mtu`, `load`, `delay`.
+  - Đọc 11 trường thông số kỹ thuật vật lý của cạnh: `id`, `u`, `v`, `mediaStr`, `length`, `bw`, `maxSeg`, `terrain`, `mtu`, `load`, `delay`. (Toàn bộ đơn giá được tách riêng sang `data/pricing.txt` để bảo đảm nguyên tắc Single Source of Truth).
   - Gọi `Validation::isValidEdge(edge, graph)`. Nếu không hợp lệ $\to$ Bỏ qua.
   - Gọi `graph.addEdge(edge)`.
 * **Hàm `loadPackets(const std::string& filepath, std::vector<Packet>& packets, const Graph* graph)` (Dòng 143-191):**
@@ -1391,10 +1377,10 @@ DSU được sử dụng trong thuật toán Kruskal để kiểm tra xem việc
 
 ---
 
-## 3.2. File `include/CostModel.h` & `src/CostModel.cpp`
+## 3.2. File include/CostModel.h & src/CostModel.cpp
 
-### Toàn bộ mã nguồn Header (`include/CostModel.h`):
-```cpp
+### Toàn bộ mã nguồn Header (include/CostModel.h):
+`cpp
   1: #ifndef COSTMODEL_H
   2: #define COSTMODEL_H
   3: 
@@ -1411,50 +1397,33 @@ DSU được sử dụng trong thuật toán Kruskal để kiểm tra xem việc
  14:     double total;         
  15: };
  16: 
- 17: // Cấu trúc lưu trạng thái bảng giá (Tương thích ngược qua khởi tạo mặc định)
+ 17: // Cấu trúc lưu trạng thái bảng giá nạp từ pricing.txt (khởi tạo rỗng đồng bộ)
  18: struct PricingConfig {
  19:     double installationCost = 0.0;
- 20:     std::map<MediaType, double> unitPrice = {
- 21:         {MediaType::COPPER, 1.0}, 
- 22:         {MediaType::FIBER, 5.0}, 
- 23:         {MediaType::WIRELESS, 0.0}
- 24:     };
- 25:     std::map<MediaType, double> equipmentCost = {
- 26:         {MediaType::COPPER, 50.0}, 
- 27:         {MediaType::FIBER, 50.0}, 
- 28:         {MediaType::WIRELESS, 80.0}
- 29:     };
- 30:     std::map<MediaType, double> maintenanceCost = {
- 31:         {MediaType::COPPER, 30.0}, 
- 32:         {MediaType::FIBER, 48.0}, 
- 33:         {MediaType::WIRELESS, 20.0}
- 34:     };
- 35: };
- 36: 
- 37: class CostModel {
- 38: private:
- 39:     PricingConfig config; // Thuộc tính private: Đảm bảo đóng gói tuyệt đối
- 40: 
- 41:     // Hàm phụ trợ chuyển chuỗi thành Enum an toàn
- 42:     MediaType stringToMediaType(const std::string& str) const;
- 43: 
- 44: public:
- 45:     // Constructor mặc định (sẽ dùng cấu hình mặc định trong PricingConfig)
- 46:     CostModel() = default;
- 47: 
- 48:     // Nạp cấu hình từ file text
- 49:     bool loadPricing(const std::string& filepath);
- 50: 
- 51:     // Tính toán chi phí - Hàm const vì nó không làm thay đổi trạng thái của model
- 52:     CostBreakdown calculateCablingCost(const Edge& edge) const;
- 53: };
- 54: 
- 55: #endif 
+ 20:     std::map<MediaType, double> unitPrice;
+ 21:     std::map<MediaType, double> equipmentCost;
+ 22:     std::map<MediaType, double> maintenanceCost;
+ 23: };
+ 24: 
+ 25: class CostModel {
+ 26: private:
+ 27:     PricingConfig config; // Thuộc tính private: Đảm bảo đóng gói tuyệt đối
+ 28: public:
+ 29:     // Constructor mặc định (sẽ dùng cấu hình mặc định trong PricingConfig)
+ 30:     CostModel() = default;
+ 31: 
+ 32:     // Nạp cấu hình từ file text
+ 33:     bool loadPricing(const std::string& filepath);
+ 34: 
+ 35:     // Tính toán chi phí - Hàm const vì nó không làm thay đổi trạng thái của model
+ 36:     CostBreakdown calculateCablingCost(const Edge& edge) const;
+ 37: };
+ 38: 
+ 39: #endif 
+`
 
-```
-
-### Toàn bộ mã nguồn Cài đặt (`src/CostModel.cpp`):
-```cpp
+### Toàn bộ mã nguồn Cài đặt (src/CostModel.cpp):
+`cpp
   1: #include "CostModel.h"
   2: #include "Config.h"
   3: #include "EnumUtils.h"
@@ -1463,128 +1432,114 @@ DSU được sử dụng trong thuật toán Kruskal để kiểm tra xem việc
   6: #include <iostream>
   7: #include <stdexcept>
   8: 
-  9: MediaType CostModel::stringToMediaType(const std::string& str) const {
- 10:     MediaType media;
- 11:     if (EnumUtils::parseMediaType(str, media)) {
- 12:         return media;
- 13:     }
- 14:     throw std::invalid_argument("Unknown MediaType: " + str);
- 15: }
- 16: 
- 17: bool CostModel::loadPricing(const std::string& filepath) {
- 18:     std::ifstream file(filepath);
- 19:     if (!file.is_open()) {
- 20:         std::cerr << "[CostModel] Canh bao: Khong the mo " << filepath << ". Su dung gia mac dinh.\n";
- 21:         return false;
- 22:     }
+  9: bool CostModel::loadPricing(const std::string& filepath) {
+ 10:     std::ifstream file(filepath);
+ 11:     if (!file.is_open()) {
+ 12:         std::cerr << "[CostModel] Canh bao: Khong the mo " << filepath << ". Su dung thong so mac dinh tu danh sach canh.\n";
+ 13:         return false;
+ 14:     }
+ 15: 
+ 16:     std::string line;
+ 17:     int lineCount = 0;
+ 18:     while (std::getline(file, line)) {
+ 19:         lineCount++;
+ 20:         if (line.empty() || line[0] == '#') {
+ 21:             continue;
+ 22:         }
  23: 
- 24:     std::string line;
- 25:     int lineCount = 0;
- 26:     while (std::getline(file, line)) {
- 27:         lineCount++;
- 28:         if (line.empty() || line[0] == '#') {
- 29:             continue;
- 30:         }
- 31: 
- 32:         std::stringstream ss(line);
- 33:         std::string key;
- 34:         ss >> key;
- 35: 
- 36:         if (key == "INSTALLATION_COST") {
- 37:             if (!(ss >> config.installationCost)) {
- 38:                 std::cerr << "[CostModel] Canh bao dong " << lineCount << ": Sai format INSTALLATION_COST trong " << filepath << ".\n";
- 39:             }
- 40:         } 
- 41:         else if (key == "UNIT_PRICE" || key == "EQUIPMENT_COST" || key == "MAINTENANCE_COST") {
- 42:             std::string typeStr;
- 43:             double val;
- 44:             if (ss >> typeStr >> val) {
- 45:                 MediaType media;
- 46:                 if (!EnumUtils::parseMediaType(typeStr, media)) {
- 47:                     std::cerr << "[CostModel] Canh bao dong " << lineCount 
- 48:                               << ": Loai cap khong hop le '" << typeStr 
- 49:                               << "' trong " << filepath << ". Bo qua dong nay.\n";
- 50:                     continue;
- 51:                 }
- 52:                 if (key == "UNIT_PRICE") {
- 53:                     config.unitPrice[media] = val;
- 54:                 } else if (key == "EQUIPMENT_COST") {
- 55:                     config.equipmentCost[media] = val;
- 56:                 } else {
- 57:                     config.maintenanceCost[media] = val;
- 58:                 }
- 59:             } else {
- 60:                 std::cerr << "[CostModel] Canh bao dong " << lineCount 
- 61:                           << ": Sai format " << key << " trong " << filepath << ". Bo qua dong nay.\n";
- 62:             }
- 63:         }
- 64:     }
- 65:     std::cout << "[CostModel] Nhan cau hinh gia thanh cong tu: " << filepath << "\n";
- 66:     return true;
- 67: }
- 68: 
- 69: CostBreakdown CostModel::calculateCablingCost(const Edge& edge) const {
- 70:     CostBreakdown breakdown;
- 71:     
- 72:     // Ràng buộc: "dùng INF cho cạnh không đi được"
- 73:     if (!edge.isUp) {
- 74:         breakdown.install = breakdown.material = breakdown.equipment = breakdown.maintenance = 0.0;
- 75:         breakdown.total = Config::INF;
- 76:         return breakdown;
- 77:     }
- 78: 
- 79:     // 1. Chi phí lắp đặt cơ bản
- 80:     breakdown.install = config.installationCost;
- 81:     
- 82:     // 2. Tính chi phí vật tư: Tra cứu trong map dựa vào loại cáp.
- 83:     // Fallback: Nếu không có trong map thì dùng edge.unitPrice
- 84:     double currentUnitPrice = config.unitPrice.count(edge.mediaType) 
- 85:                               ? config.unitPrice.at(edge.mediaType) 
- 86:                               : edge.unitPrice;
- 87:     breakdown.material = edge.length * currentUnitPrice * edge.terrainFactor;
- 88:     
- 89:     // 3. Phí thiết bị
- 90:     double currentEquipCost = config.equipmentCost.count(edge.mediaType)
- 91:                               ? config.equipmentCost.at(edge.mediaType)
- 92:                               : edge.equipmentCost;
- 93:     breakdown.equipment = currentEquipCost;
- 94:     
- 95:     // 4. Phí bảo trì
- 96:     double currentMaintCost = config.maintenanceCost.count(edge.mediaType)
- 97:                               ? config.maintenanceCost.at(edge.mediaType)
- 98:                               : edge.maintenanceCost;
- 99:     breakdown.maintenance = currentMaintCost;
-100:     
-101:     // 5. Tổng tất cả các chi phí
-102:     breakdown.total = breakdown.install + breakdown.material + breakdown.equipment + breakdown.maintenance;
-103:     
-104:     return breakdown;
-105: }
-
-```
+ 24:         std::stringstream ss(line);
+ 25:         std::string key;
+ 26:         ss >> key;
+ 27: 
+ 28:         if (key == "INSTALLATION_COST") {
+ 29:             if (!(ss >> config.installationCost)) {
+ 30:                 std::cerr << "[CostModel] Canh bao dong " << lineCount << ": Sai format INSTALLATION_COST trong " << filepath << ".\n";
+ 31:             }
+ 32:         } 
+ 33:         else if (key == "UNIT_PRICE" || key == "EQUIPMENT_COST" || key == "MAINTENANCE_COST") {
+ 34:             std::string typeStr;
+ 35:             double val;
+ 36:             if (ss >> typeStr >> val) {
+ 37:                 MediaType media;
+ 38:                 if (!EnumUtils::parseMediaType(typeStr, media)) {
+ 39:                     std::cerr << "[CostModel] Canh bao dong " << lineCount 
+ 40:                               << ": Loai cap khong hop le '" << typeStr 
+ 41:                               << "' trong " << filepath << ". Bo qua dong nay.\n";
+ 42:                     continue;
+ 43:                 }
+ 44:                 if (key == "UNIT_PRICE") {
+ 45:                     config.unitPrice[media] = val;
+ 46:                 } else if (key == "EQUIPMENT_COST") {
+ 47:                     config.equipmentCost[media] = val;
+ 48:                 } else {
+ 49:                     config.maintenanceCost[media] = val;
+ 50:                 }
+ 51:             } else {
+ 52:                 std::cerr << "[CostModel] Canh bao dong " << lineCount 
+ 53:                           << ": Sai format " << key << " trong " << filepath << ". Bo qua dong nay.\n";
+ 54:             }
+ 55:         }
+ 56:     }
+ 57:     std::cout << "[CostModel] Nhan cau hinh gia thanh cong tu: " << filepath << "\n";
+ 58:     return true;
+ 59: }
+ 60: 
+ 61: CostBreakdown CostModel::calculateCablingCost(const Edge& edge) const {
+ 62:     CostBreakdown breakdown;
+ 63:     
+ 64:     // Ràng buộc: "dùng INF cho cạnh không đi được"
+ 65:     if (!edge.isUp) {
+ 66:         breakdown.install = breakdown.material = breakdown.equipment = breakdown.maintenance = 0.0;
+ 67:         breakdown.total = Config::INF;
+ 68:         return breakdown;
+ 69:     }
+ 70: 
+ 71:     // 1. Kiểm tra loại cáp đã được định giá trong pricing.txt chưa
+ 72:     if (config.unitPrice.count(edge.mediaType) == 0 ||
+ 73:         config.equipmentCost.count(edge.mediaType) == 0 ||
+ 74:         config.maintenanceCost.count(edge.mediaType) == 0) {
+ 75:         breakdown.install = breakdown.material = breakdown.equipment = breakdown.maintenance = 0.0;
+ 76:         breakdown.total = Config::INF;
+ 77:         return breakdown;
+ 78:     }
+ 79: 
+ 80:     // 2. Chi phí lắp đặt cơ bản
+ 81:     breakdown.install = config.installationCost;
+ 82:     
+ 83:     // 3. Chi phí vật tư cáp = Chiều dài * Đơn giá từ pricing.txt * Hệ số địa hình
+ 84:     double currentUnitPrice = config.unitPrice.at(edge.mediaType);
+ 85:     breakdown.material = edge.length * currentUnitPrice * edge.terrainFactor;
+ 86:     
+ 87:     // 4. Phí thiết bị cổng từ pricing.txt
+ 88:     breakdown.equipment = config.equipmentCost.at(edge.mediaType);
+ 89:     
+ 90:     // 5. Phí bảo trì định kỳ từ pricing.txt
+ 91:     breakdown.maintenance = config.maintenanceCost.at(edge.mediaType);
+ 92:     
+ 93:     // 6. Tổng tất cả các chi phí
+ 94:     breakdown.total = breakdown.install + breakdown.material + breakdown.equipment + breakdown.maintenance;
+ 95:     
+ 96:     return breakdown;
+ 97: }
+`
 
 ### Giải thích chi tiết từng dòng code:
 
-#### 1. Cấu trúc bảng giá `PricingConfig` & `CostBreakdown`:
-* `CostBreakdown` (`include/CostModel.h` dòng 9-15): Cung cấp chi tiết 4 thành phần chi phí của một đường cáp:
-  1. `install`: Phí nhân công thi công cơ bản.
-  2. `material`: Tiền mua cáp: $\text{chiều dài} \times \text{đơn giá cáp/mét} \times \text{hệ số địa hình}$.
-  3. `equipment`: Phí trang thiết bị đầu cuối (module quang, card chuyển đổi).
-  4. `maintenance`: Phí bảo trì định kỳ.
-  5. `total`: Tổng chi phí lắp đặt = $install + material + equipment + maintenance$.
+#### 1. Cấu trúc bảng giá PricingConfig & CostBreakdown:
+* CostBreakdown (include/CostModel.h dòng 9-15): Cung cấp chi tiết 4 thành phần chi phí của một đường cáp: install, material, equipment, maintenance và 	otal.
+* PricingConfig (include/CostModel.h dòng 18-23): Khởi tạo rỗng đồng bộ. Toàn bộ đơn giá được nạp trực tiếp và duy nhất từ file cấu hình thị trường data/pricing.txt (Single Source of Truth), không gán ngầm giá trị trong mã nguồn.
 
-#### 2. Các phương thức trong `src/CostModel.cpp`:
-* **Dòng 9-16 (`stringToMediaType`):** Chuyển đổi an toàn từ chuỗi sang `MediaType` qua `EnumUtils`. Nếu chuỗi không hợp lệ, ném ngoại lệ `std::invalid_argument`.
-* **Dòng 18-72 (`loadPricing`):**
-  - Mở file `data/pricing.txt`.
-  - Quét từng dòng, nhận diện các từ khóa: `INSTALLATION_COST`, `UNIT_PRICE`, `EQUIPMENT_COST`, `MAINTENANCE_COST`.
-  - **Cơ chế phòng thủ:** Sử dụng `EnumUtils::parseMediaType(typeStr, media)`. Nếu phát hiện loại cáp lạ (ví dụ gõ nhầm `FIBRE`), hệ thống in cảnh báo kèm số dòng `lineCount` và bỏ qua dòng đó, giữ nguyên giá mặc định, **tuyệt đối không để giá bị ghi đè nhầm sang WIRELESS**.
-* **Dòng 74-109 (`calculateCablingCost`):**
-  - Kiểm tra trạng thái vật lý: `if (!edge.isUp) return breakdown với total = Config::INF;`. Cáp đang đứt thì không thể vận hành, chi phí coi như vô cực.
-  - Tra cứu đơn giá vật tư, phí thiết bị và phí bảo trì theo loại cáp (`edge.mediaType`). Nếu trong file cấu hình không có thì dùng giá fallback lưu sẵn trong đối tượng `edge`.
-  - Áp dụng đúng công thức:
-    $$\text{material} = \text{edge.length} \times \text{unitPrice} \times \text{edge.terrainFactor}$$
-    $$\text{total} = \text{install} + \text{material} + \text{equipment} + \text{maintenance}$$
+#### 2. Các phương thức trong src/CostModel.cpp:
+* **Dòng 9-57 (loadPricing):**
+  - Mở file data/pricing.txt. Nếu không mở được, in cảnh báo ra std::cerr và trả về alse.
+  - Bóc tách từng dòng qua std::stringstream: nhận diện từ khóa INSTALLATION_COST, UNIT_PRICE, EQUIPMENT_COST, MAINTENANCE_COST.
+  - Kiểm tra tính hợp lệ của chuỗi loại cáp qua EnumUtils::parseMediaType. Nếu gõ sai chính tả, cảnh báo rõ số dòng và bỏ qua.
+* **Dòng 59-99 (calculateCablingCost - Nguyên tắc Nguồn giá duy nhất):**
+  - Kiểm tra trạng thái vật lý: if (!edge.isUp) return breakdown với total = Config::INF; (cáp hỏng thì chi phí là vô cực để thuật toán né tránh).
+  - **Kiểm tra định giá:** Nếu loại cáp này chưa từng được định giá trong pricing.txt (chưa có trong unitPrice, equipmentCost hoặc maintenanceCost), lập tức trả về 	otal = Config::INF để từ chối thi công, đảm bảo tính minh bạch tài chính tuyệt đối, không lấy lôm côm từ edges.txt.
+  - Áp dụng công thức tính giá theo đúng bảng giá thị trường pricing.txt:
+    \text{material} = \text{edge.length} \times \text{config.unitPrice.at(edge.mediaType)} \times \text{edge.terrainFactor}
+    \text{total} = \text{install} + \text{material} + \text{equipment} + \text{maintenance}
 
 ---
 
@@ -2058,17 +2013,14 @@ Sau khi hạ tầng cáp vật lý đã được phê duyệt ở Chương 3 (`i
  74:         int fragments = calcFragmentCount(packet.sizeBytes, edge.mtu, packet.canFragment);
  75:         if (fragments == 0) return Config::INF; // Bị rớt gói tin do quá to mà không cho băm
  76: 
- 77:         // 2. Tính Base Delay cơ bản
- 78:         double dTrans = calcTransmissionDelay(packet.sizeBytes, edge.bandwidthMbps);
- 79:         double propSpeed = (edge.mediaType == MediaType::WIRELESS) ? Config::SPEED_OF_LIGHT_AIR : Config::SPEED_OF_LIGHT_FIBER;
- 80:         double dProp = calcPropagationDelay(edge.length, propSpeed);
- 81:         double dProc = calcProcessingDelay(nextNode);
- 82:         double dQueue = calcQueueDelay(edge.queueDelay, edge.currentLoad);
- 83: 
- 84:         // Trễ truyền tải (Transmission) sẽ bị nhân lên theo số lượng mảnh
- 85:         // Còn các trễ Prop, Proc, Queue được xem như áp dụng đồng thời dạng Pipeline cho loạt mảnh
- 86:         return (dTrans * fragments) + dProp + dProc + dQueue;
- 87:     }
+ 77:         // 2. Tính Base Delay cơ bản (trường hợp 1 mảnh không phân mảnh)
+ 78:         double baseDelay = calcBaseDelay(packet, edge, nextNode);
+ 79:         if (baseDelay == Config::INF) return Config::INF;
+ 80: 
+ 81:         // 3. Nếu phải phân mảnh (fragments > 1), trễ phát dTrans sẽ tăng thêm cho (fragments - 1) mảnh phụ
+ 82:         double dTrans = calcTransmissionDelay(packet.sizeBytes, edge.bandwidthMbps);
+ 83:         return baseDelay + dTrans * (fragments - 1);
+ 84:     }
  88: 
  89:     double calculateTotalDelay(const Packet& packet, const Edge& edge, const Node& nextNode) {
  90:         double oneWayDelay = calculateHopDelay(packet, edge, nextNode);
@@ -2817,12 +2769,12 @@ Chương này trình bày "trái tim vận hành" của đồ án: Nhận kịch
  63: 
  64: // Task B4.5: sendPacket()
  65: SimulationResult Simulator::sendPacket(const Packet& packet, const PathResult& path, Graph& graph) {
- 66:     SimulationResult result = {true, 0.0, "", 1};
- 67:     
- 68:     // Nếu Dijkstra trả về không có đường đi (reachable = false)
- 69:     if (!path.reachable || path.edges.empty()) {
- 70:         result.success = false;
- 71:         result.failReason = "NO_ROUTE_AVAILABLE";
+ 66:     SimulationResult result;
+ 70: 
+ 71:     // Nếu Dijkstra trả về không có đường đi (reachable = false)
+ 72:     if (!path.reachable || path.edges.empty()) {
+ 73:         result.success = false;
+ 74:         result.failReason = "NO_ROUTE_AVAILABLE";
  72:         return result;
  73:     }
  74: 
@@ -3845,4 +3797,349 @@ Chương này trình bày tầng trình diễn thông tin (Presentation Layer) v
 **Trả lời:**
 - Kết nối TCP là kết nối đầu-cuối (End-to-End) giữa máy nguồn và máy đích, các router trung gian chỉ chuyển tiếp gói IP chứ không tham gia bắt tay.
 - Khi mở kết nối mới (`newConnection = true`), gói tin tốn thêm đúng 1 RTT (Round Trip Time = $2 \times \text{One-Way Delay}$).
-- Khoản trễ này được cộng **đúng 1 lần duy nhất** cho toàn bộ hành trình sau khi đã tính tổng trễ của tất cả các chặng, tuyệt đối không cộng lặp lại ở từng chặng riêng lẻ.
+- Khoản trễ này được cộng **đúng 1 lần duy nhất** cho toàn bộ hành trình sau khi đã tính tổng trễ của tất cả các chặng, tuyệt đối không cộng lặp lại ở từng chặng riêng lẻ.## 3.2. File include/CostModel.h & src/CostModel.cpp
+
+### Toàn bộ mã nguồn Header (include/CostModel.h):
+`cpp
+  1: #ifndef COSTMODEL_H
+  2: #define COSTMODEL_H
+  3: 
+  4: #include "Edge.h"
+  5: 
+  6: #include <map>
+  7: #include <string>
+  8: 
+  9: struct CostBreakdown {
+ 10:     double install;     
+ 11:     double material;      // Chi phí vật tư (chiều dài * đơn giá * hệ số địa hình)
+ 12:     double equipment;     
+ 13:     double maintenance;   
+ 14:     double total;         
+ 15: };
+ 16: 
+ 17: // Cấu trúc lưu trạng thái bảng giá nạp từ pricing.txt (khởi tạo rỗng đồng bộ)
+ 18: struct PricingConfig {
+ 19:     double installationCost = 0.0;
+ 20:     std::map<MediaType, double> unitPrice;
+ 21:     std::map<MediaType, double> equipmentCost;
+ 22:     std::map<MediaType, double> maintenanceCost;
+ 23: };
+ 24: 
+ 25: class CostModel {
+ 26: private:
+ 27:     PricingConfig config; // Thuộc tính private: Đảm bảo đóng gói tuyệt đối
+ 28: 
+ 29: public:
+ 30:     // Constructor mặc định (sẽ dùng cấu hình mặc định trong PricingConfig)
+ 31:     CostModel() = default;
+ 32: 
+ 33:     // Nạp cấu hình từ file text
+ 34:     bool loadPricing(const std::string& filepath);
+ 35: 
+ 36:     // Tính toán chi phí - Hàm const vì nó không làm thay đổi trạng thái của model
+ 37:     CostBreakdown calculateCablingCost(const Edge& edge) const;
+ 38: };
+ 39: 
+ 40: #endif 
+
+`
+
+### Toàn bộ mã nguồn Cài đặt (src/CostModel.cpp):
+`cpp
+  1: #include "CostModel.h"
+  2: #include "Config.h"
+  3: #include "EnumUtils.h"
+  4: #include <fstream>
+  5: #include <sstream>
+  6: #include <iostream>
+  7: #include <stdexcept>
+  8: 
+  9: bool CostModel::loadPricing(const std::string& filepath) {
+ 10:     std::ifstream file(filepath);
+ 11:     if (!file.is_open()) {
+ 12:         std::cerr << "[CostModel] Canh bao: Khong the mo " << filepath << ". Su dung thong so mac dinh tu danh sach canh.\n";
+ 13:         return false;
+ 14:     }
+ 15: 
+ 16:     std::string line;
+ 17:     int lineCount = 0;
+ 18:     while (std::getline(file, line)) {
+ 19:         lineCount++;
+ 20:         if (line.empty() || line[0] == '#') {
+ 21:             continue;
+ 22:         }
+ 23: 
+ 24:         std::stringstream ss(line);
+ 25:         std::string key;
+ 26:         ss >> key;
+ 27: 
+ 28:         if (key == "INSTALLATION_COST") {
+ 29:             if (!(ss >> config.installationCost)) {
+ 30:                 std::cerr << "[CostModel] Canh bao dong " << lineCount << ": Sai format INSTALLATION_COST trong " << filepath << ".\n";
+ 31:             }
+ 32:         } 
+ 33:         else if (key == "UNIT_PRICE" || key == "EQUIPMENT_COST" || key == "MAINTENANCE_COST") {
+ 34:             std::string typeStr;
+ 35:             double val;
+ 36:             if (ss >> typeStr >> val) {
+ 37:                 MediaType media;
+ 38:                 if (!EnumUtils::parseMediaType(typeStr, media)) {
+ 39:                     std::cerr << "[CostModel] Canh bao dong " << lineCount 
+ 40:                               << ": Loai cap khong hop le '" << typeStr 
+ 41:                               << "' trong " << filepath << ". Bo qua dong nay.\n";
+ 42:                     continue;
+ 43:                 }
+ 44:                 if (key == "UNIT_PRICE") {
+ 45:                     config.unitPrice[media] = val;
+ 46:                 } else if (key == "EQUIPMENT_COST") {
+ 47:                     config.equipmentCost[media] = val;
+ 48:                 } else {
+ 49:                     config.maintenanceCost[media] = val;
+ 50:                 }
+ 51:             } else {
+ 52:                 std::cerr << "[CostModel] Canh bao dong " << lineCount 
+ 53:                           << ": Sai format " << key << " trong " << filepath << ". Bo qua dong nay.\n";
+ 54:             }
+ 55:         }
+ 56:     }
+ 57:     std::cout << "[CostModel] Nhan cau hinh gia thanh cong tu: " << filepath << "\n";
+ 58:     return true;
+ 59: }
+ 60: 
+ 61: CostBreakdown CostModel::calculateCablingCost(const Edge& edge) const {
+ 62:     CostBreakdown breakdown;
+ 63:     
+ 64:     // Ràng buộc: "dùng INF cho cạnh không đi được"
+ 65:     if (!edge.isUp) {
+ 66:         breakdown.install = breakdown.material = breakdown.equipment = breakdown.maintenance = 0.0;
+ 67:         breakdown.total = Config::INF;
+ 68:         return breakdown;
+ 69:     }
+ 70: 
+ 71:     // 1. Chi phí lắp đặt cơ bản
+ 72:     breakdown.install = config.installationCost;
+ 73:     
+ 74:     // 2. Tính chi phí vật tư: Tra cứu trong map dựa vào loại cáp.
+ 75:     // Fallback: Nếu không có trong map thì dùng edge.unitPrice
+ 76:     double currentUnitPrice = config.unitPrice.count(edge.mediaType) 
+ 77:                               ? config.unitPrice.at(edge.mediaType) 
+ 78:                               : edge.unitPrice;
+ 79:     breakdown.material = edge.length * currentUnitPrice * edge.terrainFactor;
+ 80:     
+ 81:     // 3. Phí thiết bị
+ 82:     double currentEquipCost = config.equipmentCost.count(edge.mediaType)
+ 83:                               ? config.equipmentCost.at(edge.mediaType)
+ 84:                               : edge.equipmentCost;
+ 85:     breakdown.equipment = currentEquipCost;
+ 86:     
+ 87:     // 4. Phí bảo trì
+ 88:     double currentMaintCost = config.maintenanceCost.count(edge.mediaType)
+ 89:                               ? config.maintenanceCost.at(edge.mediaType)
+ 90:                               : edge.maintenanceCost;
+ 91:     breakdown.maintenance = currentMaintCost;
+ 92:     
+ 93:     // 5. Tổng tất cả các chi phí
+ 94:     breakdown.total = breakdown.install + breakdown.material + breakdown.equipment + breakdown.maintenance;
+ 95:     
+ 96:     return breakdown;
+ 97: }
+
+`
+
+### Giải thích chi tiết từng dòng code:
+
+#### 1. Cấu trúc bảng giá PricingConfig & CostBreakdown:
+* CostBreakdown (include/CostModel.h dòng 9-15): Cung cấp chi tiết 4 thành phần chi phí của một đường cáp:
+  1. install: Phí nhân công thi công cơ bản.
+  2. material: Tiền mua cáp: $\text{chiều dài} \times \text{đơn giá cáp/mét} \times \text{hệ số địa hình}$.
+  3. equipment: Phí trang thiết bị đầu cuối (module quang, card chuyển đổi).
+  4. maintenance: Phí bảo trì định kỳ.
+  5. 	otal: Tổng chi phí lắp đặt =  + material + equipment + maintenance$.
+* PricingConfig (include/CostModel.h dòng 18-24): Khởi tạo rỗng đồng bộ theo đúng nguyên lý của toàn bộ hệ thống (khi chưa nạp file pricing.txt thì các bảng giá rỗng). Hệ thống sẽ sử dụng các thông số kỹ thuật mặc định có sẵn của từng sợi cáp trong edges.txt, không cần hardcode bất kỳ con số ngầm nào trong Header.
+
+#### 2. Các phương thức trong src/CostModel.cpp:
+* **Dòng 9-57 (loadPricing):**
+  - Mở file data/pricing.txt.
+  - Quét từng dòng, nhận diện các từ khóa: INSTALLATION_COST, UNIT_PRICE, EQUIPMENT_COST, MAINTENANCE_COST.
+  - **Cơ chế phòng thủ:** Sử dụng trực tiếp EnumUtils::parseMediaType(typeStr, media). Nếu phát hiện loại cáp lạ (ví dụ gõ nhầm FIBRE), hệ thống in cảnh báo kèm số dòng lineCount và bỏ qua dòng đó, đảm bảo bảng giá không bị ghi đè dữ liệu rác.
+* **Dòng 59-95 (calculateCablingCost):**
+  - Kiểm tra trạng thái vật lý: if (!edge.isUp) return breakdown với total = Config::INF;. Cáp đang đứt thì không thể vận hành, chi phí coi như vô cực.
+  - Tra cứu đơn giá vật tư, phí thiết bị và phí bảo trì theo loại cáp (edge.mediaType). Nếu trong file cấu hình không có (hoặc chưa nạp file pricing) thì tự động lấy giá fallback lưu sẵn trong đối tượng edge.
+  - Áp dụng đúng công thức:
+    \text{material} = \text{edge.length} \times \text{unitPrice} \times \text{edge.terrainFactor}
+    \text{total} = \text{install} + \text{material} + \text{equipment} + \text{maintenance}
+
+---
+
+## 3.2. File include/CostModel.h & src/CostModel.cpp
+
+### Toàn bộ mã nguồn Header (include/CostModel.h):
+`cpp
+  1: #ifndef COSTMODEL_H
+  2: #define COSTMODEL_H
+  3: 
+  4: #include "Edge.h"
+  5: 
+  6: #include <map>
+  7: #include <string>
+  8: 
+  9: struct CostBreakdown {
+ 10:     double install;     
+ 11:     double material;      // Chi phí vật tư (chiều dài * đơn giá * hệ số địa hình)
+ 12:     double equipment;     
+ 13:     double maintenance;   
+ 14:     double total;         
+ 15: };
+ 16: 
+ 17: // Cấu trúc lưu trạng thái bảng giá nạp từ pricing.txt (khởi tạo rỗng đồng bộ)
+ 18: struct PricingConfig {
+ 19:     double installationCost = 0.0;
+ 20:     std::map<MediaType, double> unitPrice;
+ 21:     std::map<MediaType, double> equipmentCost;
+ 22:     std::map<MediaType, double> maintenanceCost;
+ 23: };
+ 24: 
+ 25: class CostModel {
+ 26: private:
+ 27:     PricingConfig config; // Thuộc tính private: Đảm bảo đóng gói tuyệt đối
+ 28: public:
+ 29:     // Constructor mặc định (sẽ dùng cấu hình mặc định trong PricingConfig)
+ 30:     CostModel() = default;
+ 31: 
+ 32:     // Nạp cấu hình từ file text
+ 33:     bool loadPricing(const std::string& filepath);
+ 34: 
+ 35:     // Tính toán chi phí - Hàm const vì nó không làm thay đổi trạng thái của model
+ 36:     CostBreakdown calculateCablingCost(const Edge& edge) const;
+ 37: };
+ 38: 
+ 39: #endif 
+`
+
+### Toàn bộ mã nguồn Cài đặt (src/CostModel.cpp):
+`cpp
+  1: #include "CostModel.h"
+  2: #include "Config.h"
+  3: #include "EnumUtils.h"
+  4: #include <fstream>
+  5: #include <sstream>
+  6: #include <iostream>
+  7: #include <stdexcept>
+  8: 
+  9: bool CostModel::loadPricing(const std::string& filepath) {
+ 10:     std::ifstream file(filepath);
+ 11:     if (!file.is_open()) {
+ 12:         std::cerr << "[CostModel] Canh bao: Khong the mo " << filepath << ". Su dung thong so mac dinh tu danh sach canh.\n";
+ 13:         return false;
+ 14:     }
+ 15: 
+ 16:     std::string line;
+ 17:     int lineCount = 0;
+ 18:     while (std::getline(file, line)) {
+ 19:         lineCount++;
+ 20:         if (line.empty() || line[0] == '#') {
+ 21:             continue;
+ 22:         }
+ 23: 
+ 24:         std::stringstream ss(line);
+ 25:         std::string key;
+ 26:         ss >> key;
+ 27: 
+ 28:         if (key == "INSTALLATION_COST") {
+ 29:             if (!(ss >> config.installationCost)) {
+ 30:                 std::cerr << "[CostModel] Canh bao dong " << lineCount << ": Sai format INSTALLATION_COST trong " << filepath << ".\n";
+ 31:             }
+ 32:         } 
+ 33:         else if (key == "UNIT_PRICE" || key == "EQUIPMENT_COST" || key == "MAINTENANCE_COST") {
+ 34:             std::string typeStr;
+ 35:             double val;
+ 36:             if (ss >> typeStr >> val) {
+ 37:                 MediaType media;
+ 38:                 if (!EnumUtils::parseMediaType(typeStr, media)) {
+ 39:                     std::cerr << "[CostModel] Canh bao dong " << lineCount 
+ 40:                               << ": Loai cap khong hop le '" << typeStr 
+ 41:                               << "' trong " << filepath << ". Bo qua dong nay.\n";
+ 42:                     continue;
+ 43:                 }
+ 44:                 if (key == "UNIT_PRICE") {
+ 45:                     config.unitPrice[media] = val;
+ 46:                 } else if (key == "EQUIPMENT_COST") {
+ 47:                     config.equipmentCost[media] = val;
+ 48:                 } else {
+ 49:                     config.maintenanceCost[media] = val;
+ 50:                 }
+ 51:             } else {
+ 52:                 std::cerr << "[CostModel] Canh bao dong " << lineCount 
+ 53:                           << ": Sai format " << key << " trong " << filepath << ". Bo qua dong nay.\n";
+ 54:             }
+ 55:         }
+ 56:     }
+ 57:     std::cout << "[CostModel] Nhan cau hinh gia thanh cong tu: " << filepath << "\n";
+ 58:     return true;
+ 59: }
+ 60: 
+ 61: CostBreakdown CostModel::calculateCablingCost(const Edge& edge) const {
+ 62:     CostBreakdown breakdown;
+ 63:     
+ 64:     // Ràng buộc: "dùng INF cho cạnh không đi được"
+ 65:     if (!edge.isUp) {
+ 66:         breakdown.install = breakdown.material = breakdown.equipment = breakdown.maintenance = 0.0;
+ 67:         breakdown.total = Config::INF;
+ 68:         return breakdown;
+ 69:     }
+ 70: 
+ 71:     // 1. Chi phí lắp đặt cơ bản
+ 72:     breakdown.install = config.installationCost;
+ 73:     
+ 74:     // 2. Tính chi phí vật tư: Tra cứu trong map dựa vào loại cáp.
+ 75:     // Fallback: Nếu không có trong map thì dùng edge.unitPrice
+ 76:     double currentUnitPrice = config.unitPrice.count(edge.mediaType) 
+ 77:                               ? config.unitPrice.at(edge.mediaType) 
+ 78:                               : edge.unitPrice;
+ 79:     breakdown.material = edge.length * currentUnitPrice * edge.terrainFactor;
+ 80:     
+ 81:     // 3. Phí thiết bị
+ 82:     double currentEquipCost = config.equipmentCost.count(edge.mediaType)
+ 83:                               ? config.equipmentCost.at(edge.mediaType)
+ 84:                               : edge.equipmentCost;
+ 85:     breakdown.equipment = currentEquipCost;
+ 86:     
+ 87:     // 4. Phí bảo trì
+ 88:     double currentMaintCost = config.maintenanceCost.count(edge.mediaType)
+ 89:                               ? config.maintenanceCost.at(edge.mediaType)
+ 90:                               : edge.maintenanceCost;
+ 91:     breakdown.maintenance = currentMaintCost;
+ 92:     
+ 93:     // 5. Tổng tất cả các chi phí
+ 94:     breakdown.total = breakdown.install + breakdown.material + breakdown.equipment + breakdown.maintenance;
+ 95:     
+ 96:     return breakdown;
+ 97: }
+`
+
+### Giải thích chi tiết từng dòng code:
+
+#### 1. Cấu trúc bảng giá PricingConfig & CostBreakdown:
+* CostBreakdown (include/CostModel.h dòng 9-15): Cung cấp chi tiết 4 thành phần chi phí của một đường cáp:
+  1. install: Phí nhân công thi công cơ bản.
+  2. material: Tiền mua cáp: $\text{chiều dài} \times \text{đơn giá cáp/mét} \times \text{hệ số địa hình}$.
+  3. equipment: Phí trang thiết bị đầu cuối (module quang, card chuyển đổi).
+  4. maintenance: Phí bảo trì định kỳ.
+  5. 	otal: Tổng chi phí lắp đặt =  + material + equipment + maintenance$.
+* PricingConfig (include/CostModel.h dòng 18-23): Khởi tạo rỗng đồng bộ theo đúng nguyên lý của toàn bộ hệ thống (khi chưa nạp file pricing.txt thì các bảng giá rỗng). Hệ thống sẽ sử dụng các thông số kỹ thuật mặc định có sẵn của từng sợi cáp trong edges.txt, không cần hardcode bất kỳ con số ngầm nào trong Header.
+
+#### 2. Các phương thức trong src/CostModel.cpp:
+* **Dòng 9-57 (loadPricing):**
+  - Mở file data/pricing.txt.
+  - Quét từng dòng, nhận diện các từ khóa: INSTALLATION_COST, UNIT_PRICE, EQUIPMENT_COST, MAINTENANCE_COST.
+  - **Cơ chế phòng thủ:** Sử dụng trực tiếp EnumUtils::parseMediaType(typeStr, media). Nếu phát hiện loại cáp lạ (ví dụ gõ nhầm FIBRE), hệ thống in cảnh báo kèm số dòng lineCount và bỏ qua dòng đó, đảm bảo bảng giá không bị ghi đè dữ liệu rác.
+* **Dòng 59-95 (calculateCablingCost):**
+  - Kiểm tra trạng thái vật lý: if (!edge.isUp) return breakdown với total = Config::INF;. Cáp đang đứt thì không thể vận hành, chi phí coi như vô cực.
+  - Tra cứu đơn giá vật tư, phí thiết bị và phí bảo trì theo loại cáp (edge.mediaType). Nếu trong file cấu hình không có (hoặc chưa nạp file pricing) thì tự động lấy giá fallback lưu sẵn trong đối tượng edge.
+  - Áp dụng đúng công thức:
+    \text{material} = \text{edge.length} \times \text{unitPrice} \times \text{edge.terrainFactor}
+    \text{total} = \text{install} + \text{material} + \text{equipment} + \text{maintenance}
+
+---
+
+

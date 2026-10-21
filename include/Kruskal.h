@@ -27,9 +27,8 @@
 // Khi CostModel (bạn B) xong thì truyền hàm calculateCablingCost vào đây.
 using CostFn = std::function<double(const Edge&)>;
 
-// Công thức tạm dùng khi chưa có CostModel:
+// Công thức tạm dùng khi chưa có CostModel (lấy đơn giá chuẩn theo mediaType):
 //   length * unitPrice * terrainFactor + equipmentCost + maintenanceCost
-// (chưa có installationCost vì struct Edge hiện tại không có field này)
 double defaultCablingCost(const Edge& e);
 
 // Số dây dự phòng mặc định

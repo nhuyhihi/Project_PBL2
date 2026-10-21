@@ -10,10 +10,10 @@
 
 // Task B4.5: Kết quả mô phỏng truyền gói tin
 struct SimulationResult {
-    bool success;
-    double totalDelay;
-    std::string failReason;
-    int fragmentCount;
+    bool success = true;
+    double totalDelay = 0.0;
+    std::string failReason = "";
+    int fragmentCount = 1;
 };
 
 // Task B4.1: NetworkSnapshot

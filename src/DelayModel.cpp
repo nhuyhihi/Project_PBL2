@@ -74,16 +74,13 @@ namespace DelayModel {
         int fragments = calcFragmentCount(packet.sizeBytes, edge.mtu, packet.canFragment);
         if (fragments == 0) return Config::INF; // Bị rớt gói tin do quá to mà không cho băm
 
-        // 2. Tính Base Delay cơ bản
-        double dTrans = calcTransmissionDelay(packet.sizeBytes, edge.bandwidthMbps);
-        double propSpeed = (edge.mediaType == MediaType::WIRELESS) ? Config::SPEED_OF_LIGHT_AIR : Config::SPEED_OF_LIGHT_FIBER;
-        double dProp = calcPropagationDelay(edge.length, propSpeed);
-        double dProc = calcProcessingDelay(nextNode);
-        double dQueue = calcQueueDelay(edge.queueDelay, edge.currentLoad);
+        // 2. Tính Base Delay cơ bản (trường hợp 1 mảnh không phân mảnh)
+        double baseDelay = calcBaseDelay(packet, edge, nextNode);
+        if (baseDelay == Config::INF) return Config::INF;
 
-        // Trễ truyền tải (Transmission) sẽ bị nhân lên theo số lượng mảnh
-        // Còn các trễ Prop, Proc, Queue được xem như áp dụng đồng thời dạng Pipeline cho loạt mảnh
-        return (dTrans * fragments) + dProp + dProc + dQueue;
+        // 3. Nếu phải phân mảnh (fragments > 1), trễ phát dTrans sẽ tăng thêm cho (fragments - 1) mảnh phụ
+        double dTrans = calcTransmissionDelay(packet.sizeBytes, edge.bandwidthMbps);
+        return baseDelay + dTrans * (fragments - 1);
     }
 
     double calculateTotalDelay(const Packet& packet, const Edge& edge, const Node& nextNode) {

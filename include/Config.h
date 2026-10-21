@@ -11,10 +11,7 @@ namespace Config {
     // 2. Hằng số Thuật toán 
     const double INF = std::numeric_limits<double>::infinity(); // Đại diện cho đứt cáp/không liên thông
 
-    // 3. Hằng số Chi phí 
-    const double INSTALLATION_COST = 0.0;
-
-    // 4. Hằng số Vật lý mạng 
+    // 3. Hằng số Vật lý mạng 
     const double SPEED_OF_LIGHT_FIBER = 2.0e8; // m/s (Trong cáp quang/cáp đồng)
     const double SPEED_OF_LIGHT_AIR = 3.0e8;   // m/s (Sóng Wireless)
 

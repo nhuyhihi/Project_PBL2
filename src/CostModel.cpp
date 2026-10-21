@@ -6,18 +6,10 @@
 #include <iostream>
 #include <stdexcept>
 
-MediaType CostModel::stringToMediaType(const std::string& str) const {
-    MediaType media;
-    if (EnumUtils::parseMediaType(str, media)) {
-        return media;
-    }
-    throw std::invalid_argument("Unknown MediaType: " + str);
-}
-
 bool CostModel::loadPricing(const std::string& filepath) {
     std::ifstream file(filepath);
     if (!file.is_open()) {
-        std::cerr << "[CostModel] Canh bao: Khong the mo " << filepath << ". Su dung gia mac dinh.\n";
+        std::cerr << "[CostModel] Loi: Khong the mo file bang gia " << filepath << ".\n";
         return false;
     }
 
@@ -76,29 +68,29 @@ CostBreakdown CostModel::calculateCablingCost(const Edge& edge) const {
         return breakdown;
     }
 
-    // 1. Chi phí lắp đặt cơ bản
+    // 1. Kiểm tra loại cáp đã được định giá trong pricing.txt chưa
+    if (config.unitPrice.count(edge.mediaType) == 0 ||
+        config.equipmentCost.count(edge.mediaType) == 0 ||
+        config.maintenanceCost.count(edge.mediaType) == 0) {
+        breakdown.install = breakdown.material = breakdown.equipment = breakdown.maintenance = 0.0;
+        breakdown.total = Config::INF;
+        return breakdown;
+    }
+
+    // 2. Chi phí lắp đặt cơ bản
     breakdown.install = config.installationCost;
     
-    // 2. Tính chi phí vật tư: Tra cứu trong map dựa vào loại cáp.
-    // Fallback: Nếu không có trong map thì dùng edge.unitPrice
-    double currentUnitPrice = config.unitPrice.count(edge.mediaType) 
-                              ? config.unitPrice.at(edge.mediaType) 
-                              : edge.unitPrice;
+    // 3. Chi phí vật tư cáp = Chiều dài * Đơn giá từ pricing.txt * Hệ số địa hình
+    double currentUnitPrice = config.unitPrice.at(edge.mediaType);
     breakdown.material = edge.length * currentUnitPrice * edge.terrainFactor;
     
-    // 3. Phí thiết bị
-    double currentEquipCost = config.equipmentCost.count(edge.mediaType)
-                              ? config.equipmentCost.at(edge.mediaType)
-                              : edge.equipmentCost;
-    breakdown.equipment = currentEquipCost;
+    // 4. Phí thiết bị cổng từ pricing.txt
+    breakdown.equipment = config.equipmentCost.at(edge.mediaType);
     
-    // 4. Phí bảo trì
-    double currentMaintCost = config.maintenanceCost.count(edge.mediaType)
-                              ? config.maintenanceCost.at(edge.mediaType)
-                              : edge.maintenanceCost;
-    breakdown.maintenance = currentMaintCost;
+    // 5. Phí bảo trì định kỳ từ pricing.txt
+    breakdown.maintenance = config.maintenanceCost.at(edge.mediaType);
     
-    // 5. Tổng tất cả các chi phí
+    // 6. Tổng tất cả các chi phí
     breakdown.total = breakdown.install + breakdown.material + breakdown.equipment + breakdown.maintenance;
     
     return breakdown;

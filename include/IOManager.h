@@ -24,13 +24,6 @@ public:
     
     // Kiểm tra xem dòng có nên bỏ qua hay không (dòng trống hoặc bắt đầu bằng '#')
     static bool isSkippableLine(const std::string& line);
-    
-    // Chuyển đổi String -> Enum
-    static NodeType stringToNodeType(const std::string& str);
-    static MediaType stringToMediaType(const std::string& str);
-    static Protocol stringToProtocol(const std::string& str);
-    static PacketType stringToPacketType(const std::string& str);
-    static EventType stringToEventType(const std::string& str);
 };
 
 #endif 

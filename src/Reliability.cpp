@@ -1,5 +1,6 @@
 #include "Reliability.h"
 #include "Validation.h"
+#include "Kruskal.h"
 #include <queue>
 #include <unordered_set>
 #include <algorithm>
@@ -93,7 +94,7 @@ namespace Reliability {
             if (connectsAB) {
                 BackupCandidate cand;
                 cand.backupEdgeId = edgeId;
-                cand.cost = e.length * e.unitPrice * e.terrainFactor + e.equipmentCost + e.maintenanceCost;
+                cand.cost = defaultCablingCost(e);
                 
                 if (e.isBuilt && e.isBackup) {
                     cand.reason = "Cap du phong da duoc xay dung (isBuilt=true, isBackup=true) noi hai nhanh " 

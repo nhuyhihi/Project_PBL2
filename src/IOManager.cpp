@@ -18,35 +18,6 @@ bool IOManager::isSkippableLine(const std::string& line) {
     return true;
 }
 
-NodeType IOManager::stringToNodeType(const std::string& str) {
-    NodeType type;
-    if (EnumUtils::parseNodeType(str, type)) return type;
-    throw std::invalid_argument("Unknown NodeType: " + str);
-}
-
-MediaType IOManager::stringToMediaType(const std::string& str) {
-    MediaType media;
-    if (EnumUtils::parseMediaType(str, media)) return media;
-    throw std::invalid_argument("Unknown MediaType: " + str);
-}
-
-Protocol IOManager::stringToProtocol(const std::string& str) {
-    Protocol proto;
-    if (EnumUtils::parseProtocol(str, proto)) return proto;
-    throw std::invalid_argument("Unknown Protocol: " + str);
-}
-
-PacketType IOManager::stringToPacketType(const std::string& str) {
-    PacketType pktType;
-    if (EnumUtils::parsePacketType(str, pktType)) return pktType;
-    throw std::invalid_argument("Unknown PacketType: " + str);
-}
-
-EventType IOManager::stringToEventType(const std::string& str) {
-    EventType evType;
-    if (EnumUtils::parseEventType(str, evType)) return evType;
-    throw std::invalid_argument("Unknown EventType: " + str);
-}
 
 bool IOManager::loadNodes(const std::string& filepath, Graph& graph) {
     std::ifstream file(filepath);
@@ -71,10 +42,8 @@ bool IOManager::loadNodes(const std::string& filepath, Graph& graph) {
             continue;
         }
 
-        try {
-            node.type = stringToNodeType(typeStr);
-        } catch (const std::exception& e) {
-            std::cerr << "Lỗi dữ liệu Enum dòng " << lineCount << ": " << e.what() << "\n";
+        if (!EnumUtils::parseNodeType(typeStr, node.type)) {
+            std::cerr << "Lỗi dữ liệu Enum dòng " << lineCount << ": Unknown NodeType " << typeStr << "\n";
             continue;
         }
 
@@ -109,19 +78,17 @@ bool IOManager::loadEdges(const std::string& filepath, Graph& graph) {
         Edge edge;
         std::string mediaStr;
 
-        // Định dạng: id u v media length bw maxSeg price terrain equip maint mtu load delay
+        // Định dạng mới (11 cột): id u v media length bw maxSeg terrain mtu load delay
         if (!(ss >> edge.id >> edge.u >> edge.v >> mediaStr >> edge.length 
-                 >> edge.bandwidthMbps >> edge.maxSegmentLength >> edge.unitPrice 
-                 >> edge.terrainFactor >> edge.equipmentCost >> edge.maintenanceCost 
+                 >> edge.bandwidthMbps >> edge.maxSegmentLength 
+                 >> edge.terrainFactor 
                  >> edge.mtu >> edge.currentLoad >> edge.queueDelay)) {
             std::cerr << "Lỗi sai format dòng " << lineCount << " trong " << filepath << "\n";
             continue;
         }
 
-        try {
-            edge.mediaType = stringToMediaType(mediaStr);
-        } catch (const std::exception& e) {
-            std::cerr << "Lỗi dữ liệu Enum dòng " << lineCount << ": " << e.what() << "\n";
+        if (!EnumUtils::parseMediaType(mediaStr, edge.mediaType)) {
+            std::cerr << "Lỗi dữ liệu Enum dòng " << lineCount << ": Unknown MediaType " << mediaStr << "\n";
             continue;
         }
 
@@ -164,11 +131,9 @@ bool IOManager::loadPackets(const std::string& filepath, std::vector<Packet>& pa
             continue;
         }
 
-        try {
-            pkt.type = stringToPacketType(typeStr);
-            pkt.protocol = stringToProtocol(protoStr);
-        } catch (const std::exception& e) {
-            std::cerr << "Lỗi dữ liệu Enum dòng " << lineCount << ": " << e.what() << "\n";
+        if (!EnumUtils::parsePacketType(typeStr, pkt.type) || !EnumUtils::parseProtocol(protoStr, pkt.protocol)) {
+            std::cerr << "Lỗi dữ liệu Enum dòng " << lineCount << ": Unknown PacketType (" << typeStr 
+                      << ") hoặc Protocol (" << protoStr << ")\n";
             continue;
         }
         
@@ -215,10 +180,8 @@ bool IOManager::loadScenario(const std::string& filepath, Scenario& scenario) {
             continue;
         }
 
-        try {
-            ev.eventType = stringToEventType(evTypeStr);
-        } catch (const std::exception& e) {
-            std::cerr << "Lỗi dữ liệu Enum dòng " << lineCount << ": " << e.what() << "\n";
+        if (!EnumUtils::parseEventType(evTypeStr, ev.eventType)) {
+            std::cerr << "Lỗi dữ liệu Enum dòng " << lineCount << ": Unknown EventType " << evTypeStr << "\n";
             continue;
         }
 

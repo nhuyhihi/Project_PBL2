@@ -14,33 +14,17 @@ struct CostBreakdown {
     double total;         
 };
 
-// Cấu trúc lưu trạng thái bảng giá (Tương thích ngược qua khởi tạo mặc định)
+// Cấu trúc lưu trạng thái bảng giá nạp từ pricing.txt (khởi tạo rỗng đồng bộ)
 struct PricingConfig {
     double installationCost = 0.0;
-    std::map<MediaType, double> unitPrice = {
-        {MediaType::COPPER, 1.0}, 
-        {MediaType::FIBER, 5.0}, 
-        {MediaType::WIRELESS, 0.0}
-    };
-    std::map<MediaType, double> equipmentCost = {
-        {MediaType::COPPER, 50.0}, 
-        {MediaType::FIBER, 50.0}, 
-        {MediaType::WIRELESS, 80.0}
-    };
-    std::map<MediaType, double> maintenanceCost = {
-        {MediaType::COPPER, 30.0}, 
-        {MediaType::FIBER, 48.0}, 
-        {MediaType::WIRELESS, 20.0}
-    };
+    std::map<MediaType, double> unitPrice;
+    std::map<MediaType, double> equipmentCost;
+    std::map<MediaType, double> maintenanceCost;
 };
 
 class CostModel {
 private:
     PricingConfig config; // Thuộc tính private: Đảm bảo đóng gói tuyệt đối
-
-    // Hàm phụ trợ chuyển chuỗi thành Enum an toàn
-    MediaType stringToMediaType(const std::string& str) const;
-
 public:
     // Constructor mặc định (sẽ dùng cấu hình mặc định trong PricingConfig)
     CostModel() = default;
