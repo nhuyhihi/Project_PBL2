@@ -5,7 +5,10 @@
 #include "Validation.h"
 
 double defaultCablingCost(const Edge& e) {
-    return e.length * e.unitPrice * e.terrainFactor + e.equipmentCost + e.maintenanceCost;
+    double unitPrice = (e.mediaType == MediaType::FIBER) ? 5.0 : ((e.mediaType == MediaType::COPPER) ? 2.0 : 0.0);
+    double equip = (e.mediaType == MediaType::FIBER) ? 40.0 : ((e.mediaType == MediaType::COPPER) ? 10.0 : 80.0);
+    double maint = (e.mediaType == MediaType::FIBER) ? 8.0 : ((e.mediaType == MediaType::COPPER) ? 5.0 : 20.0);
+    return e.length * unitPrice * e.terrainFactor + equip + maint;
 }
 
 const char* toString(RejectReason r) {

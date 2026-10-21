@@ -29,13 +29,11 @@ void Simulator::applyEvent(Graph& graph, const ScenarioEvent& event) {
 
         switch (event.eventType) {
             case EventType::LOAD_UPDATE:
-                // Đảm bảo load không vượt quá 1.0 và không nhỏ hơn 0.0
-                targetEdge.currentLoad = std::max(0.0, std::min(1.0, event.value));
+                targetEdge.currentLoad = event.value;
                 break;
 
             case EventType::DELAY_UPDATE:
-                // Đảm bảo delay không âm
-                targetEdge.queueDelay = std::max(0.0, event.value);
+                targetEdge.queueDelay = event.value;
                 break;
 
             default:
@@ -50,7 +48,7 @@ void Simulator::applyEvent(Graph& graph, const ScenarioEvent& event) {
 
 // Task B4.5: sendPacket()
 SimulationResult Simulator::sendPacket(const Packet& packet, const PathResult& path, Graph& graph) {
-    SimulationResult result = {true, 0.0, "", 1};
+    SimulationResult result;
     
     // Nếu Dijkstra trả về không có đường đi (reachable = false)
     if (!path.reachable || path.edges.empty()) {

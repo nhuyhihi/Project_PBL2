@@ -6,7 +6,6 @@
 #include "CostModel.h"
 #include "Reporter.h"
 #include "Simulator.h"
-#include "RoutingCost.h"
 #include <iomanip>
 
 int main() {
@@ -61,8 +60,7 @@ int main() {
         NetworkSnapshot snap = Simulator::snapshotNetworkState(graph);
 
         // Định tuyến theo chi phí động (RoutingCost) theo loại QoS (Task A4.2, A4.4)
-        PathResult path = dijkstra(graph, pkt.source, pkt.destination,
-                                    RoutingCost::makeWeightFn(pkt), /*onlyBuilt=*/true);
+        PathResult path = dijkstra(graph, pkt.source, pkt.destination, pkt, /*onlyBuilt=*/true);
         
         std::cout << "Packet #" << pkt.id << " (" << pkt.source << " -> " << pkt.destination 
                   << ", " << pkt.sizeBytes << " bytes, Type: " << (pkt.type == PacketType::REAL_TIME ? "REAL_TIME" : (pkt.type == PacketType::BULK_DATA ? "BULK_DATA" : "CONTROL")) << "):\n";
@@ -103,8 +101,7 @@ int main() {
             // Thử định tuyến lại cho gói tin REAL_TIME đầu tiên để xem route có đổi không
             if (!packets.empty()) {
                 const Packet& testPkt = packets[0];
-                PathResult newPath = dijkstra(graph, testPkt.source, testPkt.destination,
-                                              RoutingCost::makeWeightFn(testPkt), /*onlyBuilt=*/true);
+                PathResult newPath = dijkstra(graph, testPkt.source, testPkt.destination, testPkt, /*onlyBuilt=*/true);
                 
                 std::cout << "  -> Route moi cho Packet #" << testPkt.id << " (" << testPkt.source << " -> " << testPkt.destination << "): ";
                 for (size_t i = 0; i < newPath.nodes.size(); ++i) {

@@ -48,11 +48,6 @@ double calculateRoutingCost(const Packet& packet, const Edge& edge) {
                                   : 0.0;
 
     double cost = w->wTrans * dTrans + w->wProp * dProp + w->wQueue * dQueue + fragmentPenalty;
-
-    // Phong thu: khong de NaN lot qua (vd bandwidthMbps = 0 -> dTrans = INF,
-    // INF * trong so van la INF, khong phai NaN, nhung van kiem tra cho chac).
-    if (std::isnan(cost)) return Config::INF;
-
     return cost;
 }
 

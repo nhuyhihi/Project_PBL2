@@ -110,10 +110,10 @@ bool IOManager::loadEdges(const std::string& filepath, Graph& graph) {
         Edge edge;
         std::string mediaStr;
 
-        // Định dạng: id u v media length bw maxSeg price terrain equip maint mtu load delay
+        // Định dạng mới (11 cột): id u v media length bw maxSeg terrain mtu load delay
         if (!(ss >> edge.id >> edge.u >> edge.v >> mediaStr >> edge.length 
-                 >> edge.bandwidthMbps >> edge.maxSegmentLength >> edge.unitPrice 
-                 >> edge.terrainFactor >> edge.equipmentCost >> edge.maintenanceCost 
+                 >> edge.bandwidthMbps >> edge.maxSegmentLength 
+                 >> edge.terrainFactor 
                  >> edge.mtu >> edge.currentLoad >> edge.queueDelay)) {
             std::cerr << "Lỗi sai format dòng " << lineCount << " trong " << filepath << "\n";
             continue;

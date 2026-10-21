@@ -35,10 +35,8 @@ static Edge makeEdge(int id, int u, int v, MediaType m, double len, double terra
     Edge e;
     e.id = id; e.u = u; e.v = v; e.mediaType = m; e.length = len; e.terrainFactor = terrain;
     if (m == MediaType::FIBER) {
-        e.unitPrice = 5; e.equipmentCost = 40; e.maintenanceCost = 8;
         e.maxSegmentLength = 2000; e.bandwidthMbps = 1000;
     } else {
-        e.unitPrice = 2; e.equipmentCost = 10; e.maintenanceCost = 5;
         e.maxSegmentLength = 100; e.bandwidthMbps = 100;
     }
     return e;

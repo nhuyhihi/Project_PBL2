@@ -74,17 +74,13 @@ namespace DelayModel {
         int fragments = calcFragmentCount(packet.sizeBytes, edge.mtu, packet.canFragment);
         if (fragments == 0) return Config::INF; // Bị rớt gói tin do quá to mà không cho băm
 
-        // 2. Tính Base Delay cơ bản
-        double dTrans = calcTransmissionDelay(packet.sizeBytes, edge.bandwidthMbps);
-        double propSpeed = (edge.mediaType == MediaType::WIRELESS) ? Config::SPEED_OF_LIGHT_AIR : Config::SPEED_OF_LIGHT_FIBER;
-        double dProp = calcPropagationDelay(edge.length, propSpeed);
-        double dProc = calcProcessingDelay(nextNode);
-        double dQueue = calcQueueDelay(edge.queueDelay, edge.currentLoad);
+        // 2. Tính Base Delay cơ bản (tái sử dụng calcBaseDelay, không khai báo lại các biến trễ trùng lặp)
+        double baseDelay = calcBaseDelay(packet, edge, nextNode);
+        if (baseDelay == Config::INF) return Config::INF;
 
-        // Trễ truyền tải (Transmission) sẽ bị nhân lên theo số lượng mảnh
-        // Còn các trễ Prop, Proc, Queue được xem như áp dụng đồng thời dạng Pipeline cho loạt mảnh,
-        // nên độ trễ phụ trội chủ yếu nằm ở Transmission. (Công thức đơn giản hóa theo bài).
-        double oneWayDelay = (dTrans * fragments) + dProp + dProc + dQueue;
+        // Trễ truyền tải (Transmission) tăng thêm cho (fragments - 1) mảnh phụ
+        double dTrans = calcTransmissionDelay(packet.sizeBytes, edge.bandwidthMbps);
+        double oneWayDelay = baseDelay + dTrans * (fragments - 1);
 
         // 3. Tính Overhead của Giao thức (TCP/UDP)
         double overhead = calcProtocolOverhead(packet, oneWayDelay);

@@ -2,6 +2,7 @@
 #include <queue>
 #include <unordered_map>
 #include <limits>
+#include "RoutingCost.h"
 
 double unitWeight(const Edge&) { return 1.0; }
 double lengthWeight(const Edge& e) { return e.length; }
@@ -98,4 +99,11 @@ PathResult dijkstra(const Graph& g, int source, int destination, const WeightFn&
     result.hopCount  = static_cast<int>(result.edges.size());
 
     return result;
+}
+
+
+PathResult dijkstra(const Graph& g, int source, int destination, const Packet& packet, bool onlyBuilt) {
+    return dijkstra(g, source, destination, [&packet](const Edge& e) {
+        return RoutingCost::calculateRoutingCost(packet, e);
+    }, onlyBuilt);
 }

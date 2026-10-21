@@ -40,4 +40,10 @@ PathResult dijkstra(const Graph& g, int source, int destination,
                      const WeightFn& weight = lengthWeight,
                      bool onlyBuilt = false);
 
+// Quá tải tiện lợi: Định tuyến trực tiếp cho một gói tin Packet cụ thể
+struct Packet; // forward declaration
+PathResult dijkstra(const Graph& g, int source, int destination,
+                     const Packet& packet,
+                     bool onlyBuilt = true);
+
 #endif // DIJKSTRA_H
