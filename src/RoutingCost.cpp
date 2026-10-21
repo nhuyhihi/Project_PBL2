@@ -51,10 +51,4 @@ double calculateRoutingCost(const Packet& packet, const Edge& edge) {
     return cost;
 }
 
-WeightFn makeWeightFn(const Packet& packet) {
-    return [packet](const Edge& e) {
-        return calculateRoutingCost(packet, e);
-    };
-}
-
 } // namespace RoutingCost

@@ -84,33 +84,39 @@ int main() {
         }
     }
 
-    std::cout << "\n=== DEMO KICH BAN SU KIEN DONG (SCENARIO SIMULATION) ===\n";
-    // 6. Nạp kịch bản tắc nghẽn (data/scenarios/congestion.txt) và áp dụng sự kiện (Task B4.3, B4.4, B4.7)
-    Scenario congestionScenario;
-    if (IOManager::loadScenario("data/scenarios/congestion.txt", congestionScenario)) {
-        std::cout << "-> Da nap kich ban: " << congestionScenario.name 
-                  << " voi " << congestionScenario.events.size() << " su kien.\n";
+    auto runScenarioDemo = [&](const std::string& scenarioPath, const std::string& title) {
+        std::cout << "\n==============================================================\n";
+        std::cout << "   " << title << "\n";
+        std::cout << "==============================================================\n";
+        Scenario sc;
+        if (IOManager::loadScenario(scenarioPath, sc)) {
+            std::cout << "-> Da nap kich ban: " << sc.name 
+                      << " voi " << sc.events.size() << " su kien.\n";
 
-        // Thực thi từng sự kiện trong kịch bản để thấy tác động động
-        for (const auto& ev : congestionScenario.events) {
-            std::cout << "\n[Time = " << ev.time << "s] Ap dung su kien vao Edge #" << ev.targetId 
-                      << " (Load moi: " << ev.value << "):\n";
-            
-            Simulator::applyEvent(graph, ev);
-            
-            // Thử định tuyến lại cho gói tin REAL_TIME đầu tiên để xem route có đổi không
-            if (!packets.empty()) {
-                const Packet& testPkt = packets[0];
-                PathResult newPath = dijkstra(graph, testPkt.source, testPkt.destination, testPkt, /*onlyBuilt=*/true);
+            for (const auto& ev : sc.events) {
+                std::string evTypeStr = (ev.eventType == EventType::LOAD_UPDATE) ? "Load" : "QueueDelay";
+                std::cout << "\n[Time = " << ev.time << "s] Ap dung su kien vao Edge #" << ev.targetId 
+                          << " (" << evTypeStr << " moi: " << ev.value << "):\n";
                 
-                std::cout << "  -> Route moi cho Packet #" << testPkt.id << " (" << testPkt.source << " -> " << testPkt.destination << "): ";
-                for (size_t i = 0; i < newPath.nodes.size(); ++i) {
-                    std::cout << newPath.nodes[i] << (i + 1 < newPath.nodes.size() ? " -> " : "");
+                Simulator::applyEvent(graph, ev);
+                
+                for (const auto& pkt : packets) {
+                    PathResult newPath = dijkstra(graph, pkt.source, pkt.destination, pkt, /*onlyBuilt=*/true);
+                    
+                    std::string typeStr = (pkt.type == PacketType::REAL_TIME) ? "REAL_TIME" : "BULK_DATA";
+                    std::cout << "  -> Route cho Packet #" << pkt.id << " (" << typeStr << "): ";
+                    for (size_t i = 0; i < newPath.nodes.size(); ++i) {
+                        std::cout << newPath.nodes[i] << (i + 1 < newPath.nodes.size() ? " -> " : "");
+                    }
+                    std::cout << " (Cost: " << std::fixed << std::setprecision(6) << newPath.totalCost << ")\n";
                 }
-                std::cout << " (Cost: " << std::fixed << std::setprecision(6) << newPath.totalCost << ")\n";
             }
         }
-    }
+    };
+
+    // 6. Demo cả 2 kịch bản để so sánh trực quan
+    runScenarioDemo("data/scenarios/congestion.txt", "DEMO 1: KICH BAN TANG TAI MANG (CONGESTION)");
+    runScenarioDemo("data/scenarios/qos.txt",        "DEMO 2: KICH BAN PHAN HOA THEO CHAT LUONG DICH VU (QOS)");
 
     std::cout << "\n=== KET THUC CHUONG TRINH ===\n";
     return 0;
