@@ -2448,12 +2448,12 @@ Chương này phân tích cơ chế chịu lỗi của hệ thống: Khi một s
  21:     // - Trả về cạnh backup tối ưu nhất (hoặc backupEdgeId = -1 nếu không có đường thay thế)
  22:     BackupCandidate findBackupForTreeEdge(const Graph& graph, 
  23:                                           const std::vector<int>& mstTreeEdges, 
- 24:                                           int failedTreeEdgeId);
+ 24:                                           int failedTreeEdgeId, const CostFn& cost);
  25: 
  26:     // Tìm tất cả các cạnh dự phòng có thể thay thế khi một tree edge cụ thể bị đứt
  27:     std::vector<BackupCandidate> findAllBackupsForTreeEdge(const Graph& graph,
  28:                                                           const std::vector<int>& mstTreeEdges,
- 29:                                                           int failedTreeEdgeId);
+ 29:                                                           int failedTreeEdgeId, const CostFn& cost);
  30: 
  31: } // namespace Reliability
  32: 
@@ -2512,7 +2512,7 @@ Chương này phân tích cơ chế chịu lỗi của hệ thống: Khi một s
  47: 
  48:     std::vector<BackupCandidate> findAllBackupsForTreeEdge(const Graph& graph,
  49:                                                           const std::vector<int>& mstTreeEdges,
- 50:                                                           int failedTreeEdgeId) {
+ 50:                                                           int failedTreeEdgeId, const CostFn& cost) {
  51:         std::vector<BackupCandidate> candidates;
  52: 
  53:         // Kiểm tra failedTreeEdgeId có thực sự nằm trong MST không
@@ -2587,8 +2587,8 @@ Chương này phân tích cơ chế chịu lỗi của hệ thống: Khi một s
 122: 
 123:     BackupCandidate findBackupForTreeEdge(const Graph& graph, 
 124:                                           const std::vector<int>& mstTreeEdges, 
-125:                                           int failedTreeEdgeId) {
-126:         std::vector<BackupCandidate> all = findAllBackupsForTreeEdge(graph, mstTreeEdges, failedTreeEdgeId);
+125:                                           int failedTreeEdgeId, const CostFn& cost) {
+126:         std::vector<BackupCandidate> all = findAllBackupsForTreeEdge(graph, mstTreeEdges, failedTreeEdgeId, cost);
 127:         if (all.empty()) {
 128:             return {-1, 0.0, "Khong tim thay bat ky cap du phong nao co the noi lai hai phan bi chia cat (Canh cau nguy cap / Critical Bridge)"};
 129:         }

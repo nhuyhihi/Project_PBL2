@@ -23,12 +23,12 @@ namespace Reliability {
     // - Trả về cạnh backup tối ưu nhất (hoặc backupEdgeId = -1 nếu không có đường thay thế)
     BackupCandidate findBackupForTreeEdge(const Graph& graph, 
                                           const std::vector<int>& mstTreeEdges, 
-                                          int failedTreeEdgeId, const CostFn& cost = nullptr);
+                                          int failedTreeEdgeId, const CostFn& cost);
 
     // Tìm tất cả các cạnh dự phòng có thể thay thế khi một tree edge cụ thể bị đứt
     std::vector<BackupCandidate> findAllBackupsForTreeEdge(const Graph& graph,
                                                           const std::vector<int>& mstTreeEdges,
-                                                          int failedTreeEdgeId, const CostFn& cost = nullptr);
+                                                          int failedTreeEdgeId, const CostFn& cost);
 
 } // namespace Reliability
 

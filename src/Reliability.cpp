@@ -94,7 +94,7 @@ namespace Reliability {
             if (connectsAB) {
                 BackupCandidate cand;
                 cand.backupEdgeId = edgeId;
-                cand.cost = cost ? cost(e) : 0.0;
+                cand.cost = cost(e);
                 
                 if (e.isBuilt && e.isBackup) {
                     cand.reason = "Cap du phong da duoc xay dung (isBuilt=true, isBackup=true) noi hai nhanh " 
