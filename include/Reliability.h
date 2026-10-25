@@ -2,8 +2,10 @@
 #define RELIABILITY_H
 
 #include "Graph.h"
+#include "Kruskal.h"
 #include <string>
 #include <vector>
+#include <functional>
 
 // Kết quả phân tích cáp dự phòng cứu một cạnh cây khung (Tree Edge)
 struct BackupCandidate {
@@ -21,12 +23,12 @@ namespace Reliability {
     // - Trả về cạnh backup tối ưu nhất (hoặc backupEdgeId = -1 nếu không có đường thay thế)
     BackupCandidate findBackupForTreeEdge(const Graph& graph, 
                                           const std::vector<int>& mstTreeEdges, 
-                                          int failedTreeEdgeId);
+                                          int failedTreeEdgeId, const CostFn& cost = nullptr);
 
     // Tìm tất cả các cạnh dự phòng có thể thay thế khi một tree edge cụ thể bị đứt
     std::vector<BackupCandidate> findAllBackupsForTreeEdge(const Graph& graph,
                                                           const std::vector<int>& mstTreeEdges,
-                                                          int failedTreeEdgeId);
+                                                          int failedTreeEdgeId, const CostFn& cost = nullptr);
 
 } // namespace Reliability
 

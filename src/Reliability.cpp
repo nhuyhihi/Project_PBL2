@@ -1,6 +1,5 @@
 #include "Reliability.h"
 #include "Validation.h"
-#include "Kruskal.h"
 #include <queue>
 #include <unordered_set>
 #include <algorithm>
@@ -48,7 +47,8 @@ namespace Reliability {
 
     std::vector<BackupCandidate> findAllBackupsForTreeEdge(const Graph& graph,
                                                           const std::vector<int>& mstTreeEdges,
-                                                          int failedTreeEdgeId) {
+                                                          int failedTreeEdgeId,
+                                                          const CostFn& cost) {
         std::vector<BackupCandidate> candidates;
 
         // Kiểm tra failedTreeEdgeId có thực sự nằm trong MST không
@@ -94,7 +94,7 @@ namespace Reliability {
             if (connectsAB) {
                 BackupCandidate cand;
                 cand.backupEdgeId = edgeId;
-                cand.cost = defaultCablingCost(e);
+                cand.cost = cost ? cost(e) : 0.0;
                 
                 if (e.isBuilt && e.isBackup) {
                     cand.reason = "Cap du phong da duoc xay dung (isBuilt=true, isBackup=true) noi hai nhanh " 
@@ -123,8 +123,9 @@ namespace Reliability {
 
     BackupCandidate findBackupForTreeEdge(const Graph& graph, 
                                           const std::vector<int>& mstTreeEdges, 
-                                          int failedTreeEdgeId) {
-        std::vector<BackupCandidate> all = findAllBackupsForTreeEdge(graph, mstTreeEdges, failedTreeEdgeId);
+                                          int failedTreeEdgeId,
+                                          const CostFn& cost) {
+        std::vector<BackupCandidate> all = findAllBackupsForTreeEdge(graph, mstTreeEdges, failedTreeEdgeId, cost);
         if (all.empty()) {
             return {-1, 0.0, "Khong tim thay bat ky cap du phong nao co the noi lai hai phan bi chia cat (Canh cau nguy cap / Critical Bridge)"};
         }

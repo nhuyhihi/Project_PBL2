@@ -29,7 +29,6 @@ using CostFn = std::function<double(const Edge&)>;
 
 // Công thức tạm dùng khi chưa có CostModel (lấy đơn giá chuẩn theo mediaType):
 //   length * unitPrice * terrainFactor + equipmentCost + maintenanceCost
-double defaultCablingCost(const Edge& e);
 
 // Số dây dự phòng mặc định
 constexpr int DEFAULT_BACKUP_LINKS = 2;
@@ -52,7 +51,7 @@ struct Rejection {
 
 // So sánh hai edge để sắp xếp: chi phí tăng dần, bằng nhau thì edgeId nhỏ hơn trước.
 // Tie-breaker theo id giúp hai lần chạy cùng dữ liệu cho CÙNG kết quả.
-bool compareEdges(const Edge& a, const Edge& b, const CostFn& cost = defaultCablingCost);
+bool compareEdges(const Edge& a, const Edge& b, const CostFn& cost);
 
 // Kiểm tra một edge có chọn được lúc này không. Trả NONE nếu được, ngược lại là lý do.
 // Thứ tự kiểm tra: down -> quá dài -> chu trình -> hết cổng.
@@ -65,7 +64,7 @@ inline bool canSelectEdge(const Graph& g, const Edge& e, DSU& dsu) {
 // Xây cây khung. Reset trạng thái xây dựng của g trước, nên gọi lại nhiều lần vẫn đúng.
 // Cập nhật g: usedPorts của node, isBuilt của edge.
 // rejections (tùy chọn): nếu khác nullptr sẽ nhận danh sách edge bị loại + lý do.
-MSTResult buildMST(Graph& g, const CostFn& cost = defaultCablingCost,
+MSTResult buildMST(Graph& g, const CostFn& cost,
                    std::vector<Rejection>* rejections = nullptr);
 
 // Kết quả chọn dây dự phòng
@@ -86,11 +85,13 @@ struct BackupResult {
 // Cạnh cây không thể bảo vệ (vd host chỉ có 1 cổng) không tính vào protectedTreeEdges.
 // Cập nhật g: isBuilt = true, isBackup = true, usedPorts +1 hai đầu.
 BackupResult selectBackupLinks(Graph& g, const MSTResult& mst,
-                               int k = DEFAULT_BACKUP_LINKS,
-                               const CostFn& cost = defaultCablingCost);
+                               int k,
+                               const CostFn& cost);
 
 // Tổng chi phí lắp đặt của một tập edge
 double sumCablingCost(const Graph& g, const std::vector<int>& edgeIds,
-                      const CostFn& cost = defaultCablingCost);
+                      const CostFn& cost);
 
 #endif // KRUSKAL_H
+
+

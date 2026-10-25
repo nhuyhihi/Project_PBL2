@@ -1602,7 +1602,7 @@ DSU được sử dụng trong thuật toán Kruskal để kiểm tra xem việc
  53: 
  54: // So sánh hai edge để sắp xếp: chi phí tăng dần, bằng nhau thì edgeId nhỏ hơn trước.
  55: // Tie-breaker theo id giúp hai lần chạy cùng dữ liệu cho CÙNG kết quả.
- 56: bool compareEdges(const Edge& a, const Edge& b, const CostFn& cost = defaultCablingCost);
+ 56: bool compareEdges(const Edge& a, const Edge& b, const CostFn& cost);
  57: 
  58: // Kiểm tra một edge có chọn được lúc này không. Trả NONE nếu được, ngược lại là lý do.
  59: // Thứ tự kiểm tra: down -> quá dài -> chu trình -> hết cổng.
@@ -1615,7 +1615,7 @@ DSU được sử dụng trong thuật toán Kruskal để kiểm tra xem việc
  66: // Xây cây khung. Reset trạng thái xây dựng của g trước, nên gọi lại nhiều lần vẫn đúng.
  67: // Cập nhật g: usedPorts của node, isBuilt của edge.
  68: // rejections (tùy chọn): nếu khác nullptr sẽ nhận danh sách edge bị loại + lý do.
- 69: MSTResult buildMST(Graph& g, const CostFn& cost = defaultCablingCost,
+ 69: MSTResult buildMST(Graph& g, const CostFn& cost,
  70:                    std::vector<Rejection>* rejections = nullptr);
  71: 
  72: // Kết quả chọn dây dự phòng
@@ -1636,12 +1636,12 @@ DSU được sử dụng trong thuật toán Kruskal để kiểm tra xem việc
  87: // Cạnh cây không thể bảo vệ (vd host chỉ có 1 cổng) không tính vào protectedTreeEdges.
  88: // Cập nhật g: isBuilt = true, isBackup = true, usedPorts +1 hai đầu.
  89: BackupResult selectBackupLinks(Graph& g, const MSTResult& mst,
- 90:                                int k = DEFAULT_BACKUP_LINKS,
- 91:                                const CostFn& cost = defaultCablingCost);
+ 90:                                int k,
+ 91:                                const CostFn& cost);
  92: 
  93: // Tổng chi phí lắp đặt của một tập edge
  94: double sumCablingCost(const Graph& g, const std::vector<int>& edgeIds,
- 95:                       const CostFn& cost = defaultCablingCost);
+ 95:                       const CostFn& cost);
  96: 
  97: #endif // KRUSKAL_H
 
@@ -1655,10 +1655,9 @@ DSU được sử dụng trong thuật toán Kruskal để kiểm tra xem việc
   4: #include <unordered_map>
   5: #include "Validation.h"
   6: 
-  7: double defaultCablingCost(const Edge& e) {
-  8:     return e.length * e.unitPrice * e.terrainFactor + e.equipmentCost + e.maintenanceCost;
-  9: }
- 10: 
+  // ?? g? b? h?m defaultCablingCost: Kruskal kh?ng t? t?nh gi? hay gi? fallback gi?.
+  // To?n b? chi ph? ???c t?nh to?n t?p trung t? CostModel (n?p t? data/pricing.txt).
+
  11: const char* toString(RejectReason r) {
  12:     switch (r) {
  13:         case RejectReason::NONE:      return "OK";
