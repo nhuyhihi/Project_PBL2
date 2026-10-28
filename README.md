@@ -1402,8 +1402,8 @@ LINK_UP
 
 ### Kiểm tra
 
-- [ ] Link DOWN → `isUp = false`
-- [ ] Link UP → `isUp = true`
+- [x] Link DOWN → `isUp = false`
+- [x] Link UP → `isUp = true`
 
 ---
 
@@ -1413,9 +1413,9 @@ Dùng BFS/DFS.
 
 ### Kiểm tra
 
-- [ ] Connected → true
-- [ ] Disconnected → false
-- [ ] Bỏ qua link DOWN
+- [x] Connected → true
+- [x] Disconnected → false
+- [x] Bỏ qua link DOWN
 
 ---
 
@@ -1433,9 +1433,9 @@ path còn hợp lệ?
 
 ### Kiểm tra
 
-- [ ] Failure trên path → reroute
-- [ ] Failure ngoài path → không reroute
-- [ ] No route → DROP
+- [x] Failure trên path → reroute
+- [x] Failure ngoài path → không reroute
+- [x] No route → DROP
 
 ---
 
@@ -1443,12 +1443,12 @@ path còn hợp lệ?
 
 ### Việc cần làm
 
-- [ ] Apply failure
-- [ ] Update state
-- [ ] Check old path
-- [ ] Rerun Dijkstra
-- [ ] Check connectivity
-- [ ] Report
+- [x] Apply failure
+- [x] Update state
+- [x] Check old path
+- [x] Rerun Dijkstra
+- [x] Check connectivity
+- [x] Report
 
 ---
 
@@ -1474,9 +1474,9 @@ MST + backup
 
 ### Kiểm tra
 
-- [ ] Có dữ liệu
-- [ ] Có bảng kết quả
-- [ ] Có thể đưa vào report
+- [x] Có dữ liệu
+- [x] Có bảng kết quả
+- [x] Có thể đưa vào report
 
 ---
 
@@ -1538,11 +1538,11 @@ H1 → R1 → R3 → R4 → H2
 
 ## Quyến
 
-- [ ] Link state
-- [ ] Connectivity
-- [ ] Reroute
-- [ ] Failure handler
-- [ ] Reliability metric
+- [x] Link state
+- [x] Connectivity
+- [x] Reroute
+- [x] Failure handler
+- [x] Reliability metric
 
 ## Ý
 
@@ -1552,9 +1552,9 @@ H1 → R1 → R3 → R4 → H2
 
 ## Test
 
-- [ ] T14
-- [ ] T15
-- [ ] T16
+- [x] T14
+- [x] T15
+- [x] T16
 
 ### Kịch bản bắt buộc
 
