@@ -101,8 +101,8 @@ PathResult dijkstra(const Graph& g, int source, int destination, const WeightFn&
     return result;
 }
 
-
 PathResult dijkstra(const Graph& g, int source, int destination, const Packet& packet, bool onlyBuilt) {
+    // Gọi thẳng dijkstra chuẩn với trọng số tính trực tiếp từ Packet qua RoutingCost
     return dijkstra(g, source, destination, [&packet](const Edge& e) {
         return RoutingCost::calculateRoutingCost(packet, e);
     }, onlyBuilt);

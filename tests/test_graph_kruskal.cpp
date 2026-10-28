@@ -43,11 +43,13 @@ static Edge makeEdge(int id, int u, int v, MediaType m, double len, double terra
 }
 
 // Chi phi mau theo Phan 6 cua tai lieu: co them phi lap dat (fiber 50, copper 20).
-// Struct Edge hien chua co field installationCost nen test tu cong vao day;
-// khi CostModel cua ban B xong thi thay bang calculateCablingCost.
+// Ham cost tuong minh phuc vu rieng cho Unit Test Kruskal:
 static double sampleCost(const Edge& e) {
     double install = (e.mediaType == MediaType::FIBER) ? 50.0 : 20.0;
-    return install + defaultCablingCost(e);
+    double unitPrice = (e.mediaType == MediaType::FIBER) ? 5.0 : ((e.mediaType == MediaType::COPPER) ? 2.0 : 0.0);
+    double equip = (e.mediaType == MediaType::FIBER) ? 40.0 : ((e.mediaType == MediaType::COPPER) ? 10.0 : 80.0);
+    double maint = (e.mediaType == MediaType::FIBER) ? 8.0 : ((e.mediaType == MediaType::COPPER) ? 5.0 : 20.0);
+    return install + (e.length * unitPrice * e.terrainFactor + equip + maint);
 }
 static MSTResult build(Graph& g, std::vector<Rejection>* r = nullptr) { return buildMST(g, sampleCost, r); }
 static BackupResult backup(Graph& g, const MSTResult& m, int k) { return selectBackupLinks(g, m, k, sampleCost); }
@@ -208,15 +210,15 @@ static void testCompareEdges() {
     std::puts("[compareEdges]");
     Edge cheap = makeEdge(5, 0, 1, MediaType::COPPER, 40, 1);   // 95 (mac dinh, chua co phi lap dat)
     Edge dear  = makeEdge(2, 0, 1, MediaType::FIBER, 400, 1);   // 2048
-    CHECK(compareEdges(cheap, dear));       // cost nho dung truoc du id lon hon
-    CHECK(!compareEdges(dear, cheap));
+    CHECK(compareEdges(cheap, dear, sampleCost));       // cost nho dung truoc du id lon hon
+    CHECK(!compareEdges(dear, cheap, sampleCost));
 
     Edge a = makeEdge(3, 0, 1, MediaType::FIBER, 400, 1);
     Edge b = makeEdge(7, 2, 3, MediaType::FIBER, 400, 1);       // cung cost, id lon hon
-    CHECK(defaultCablingCost(a) == defaultCablingCost(b));
-    CHECK(compareEdges(a, b));              // bang cost -> id nho truoc
-    CHECK(!compareEdges(b, a));
-    CHECK(!compareEdges(a, a));             // strict weak ordering: khong so sanh ban than
+    CHECK(sampleCost(a) == sampleCost(b));
+    CHECK(compareEdges(a, b, sampleCost));              // bang cost -> id nho truoc
+    CHECK(!compareEdges(b, a, sampleCost));
+    CHECK(!compareEdges(a, a, sampleCost));             // strict weak ordering: khong so sanh ban than
 
     // Hai lan chay cung du lieu -> cung thu tu
     Graph g = sampleGraph();

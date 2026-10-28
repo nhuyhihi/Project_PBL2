@@ -1,0 +1,16 @@
+========================================================================================================
+                               NHAT KY MO PHONG MANG (SIMULATION LOG)                                   
+Kich ban (Scenario) : data/scenarios/redundancy.txt
+Tong so ban ghi log : 6
+========================================================================================================
+
+Time(s) Packet  Src   Dst   Hop   Frag    Delay(s)    Status    Path                Failure / Note              
+--------------------------------------------------------------------------------------------------------
+1.0     #0      0     3     2     1       0.002256    SUCCESS   0->2->3             LINK_DOWN Edge #1
+1.0     #1      0     3     2     3       0.006809    SUCCESS   0->2->3             LINK_DOWN Edge #1
+2.0     #0      0     3     2     1       0.002256    SUCCESS   0->2->3             LINK_DOWN Edge #0
+2.0     #1      0     3     2     3       0.006809    SUCCESS   0->2->3             LINK_DOWN Edge #0
+3.0     #0      0     3     2     1       0.002256    SUCCESS   0->2->3             LINK_UP Edge #1, LINK_UP Edge #0
+3.0     #1      0     3     2     3       0.006809    SUCCESS   0->2->3             LINK_UP Edge #1, LINK_UP Edge #0
+--------------------------------------------------------------------------------------------------------
+Ket thuc nhat ky mo phong.

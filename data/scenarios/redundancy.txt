@@ -1,0 +1,14 @@
+# Scenario: Redundancy (Kịch bản kiểm tra vai trò cáp dự phòng - Task B6.4)
+# Định dạng: [Time] [EventType] [TargetEdgeId] [Value]
+# Mục đích: Mô phỏng việc tắt các dây cáp chính để kiểm chứng khả năng cứu mạng của các cáp dự phòng Backup.
+# Cáp Backup #2 (0-2) và Backup #3 (2-3) sẽ được kích hoạt để cứu liên lạc giữa Node 0 và Node 3.
+
+# Ban đầu đứt Edge #1 (1-3) trên cây MST -> Cáp dự phòng Backup #3 (2-3) lập tức thế chỗ
+1.0 LINK_DOWN 1 0.0
+
+# Tiếp tục đứt thêm Edge #0 (0-1) -> Nhánh trên tê liệt hoàn toàn, toàn bộ lưu lượng dồn qua Backup #2 và #3
+2.0 LINK_DOWN 0 0.0
+
+# Phục hồi lại các dây chính
+3.0 LINK_UP 1 0.0
+3.0 LINK_UP 0 0.0

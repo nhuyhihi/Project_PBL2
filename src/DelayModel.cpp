@@ -67,22 +67,27 @@ namespace DelayModel {
         return 0.0;
     }
 
-    double calculateTotalDelay(const Packet& packet, const Edge& edge, const Node& nextNode) {
+    double calculateHopDelay(const Packet& packet, const Edge& edge, const Node& nextNode) {
         if (!edge.isUp) return Config::INF;
 
         // 1. Kiểm tra phân mảnh
         int fragments = calcFragmentCount(packet.sizeBytes, edge.mtu, packet.canFragment);
         if (fragments == 0) return Config::INF; // Bị rớt gói tin do quá to mà không cho băm
 
-        // 2. Tính Base Delay cơ bản (tái sử dụng calcBaseDelay, không khai báo lại các biến trễ trùng lặp)
+        // 2. Tính Base Delay cơ bản (trường hợp 1 mảnh không phân mảnh)
         double baseDelay = calcBaseDelay(packet, edge, nextNode);
         if (baseDelay == Config::INF) return Config::INF;
 
-        // Trễ truyền tải (Transmission) tăng thêm cho (fragments - 1) mảnh phụ
+        // 3. Nếu phải phân mảnh (fragments > 1), trễ phát dTrans sẽ tăng thêm cho (fragments - 1) mảnh phụ
         double dTrans = calcTransmissionDelay(packet.sizeBytes, edge.bandwidthMbps);
-        double oneWayDelay = baseDelay + dTrans * (fragments - 1);
+        return baseDelay + dTrans * (fragments - 1);
+    }
 
-        // 3. Tính Overhead của Giao thức (TCP/UDP)
+    double calculateTotalDelay(const Packet& packet, const Edge& edge, const Node& nextNode) {
+        double oneWayDelay = calculateHopDelay(packet, edge, nextNode);
+        if (oneWayDelay == Config::INF) return Config::INF;
+
+        // 3. Tính Overhead của Giao thức (TCP/UDP) nếu xét đơn lẻ trên 1 cạnh
         double overhead = calcProtocolOverhead(packet, oneWayDelay);
 
         return oneWayDelay + overhead;

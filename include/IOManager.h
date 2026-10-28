@@ -16,21 +16,14 @@ public:
     // Đọc danh sách Edge từ file
     static bool loadEdges(const std::string& filepath, Graph& graph);
     
-    // Đọc danh sách Packet từ file
-    static bool loadPackets(const std::string& filepath, std::vector<Packet>& packets);
+    // Đọc danh sách Packet từ file (có thể truyền Graph để kiểm tra node nguồn/đích)
+    static bool loadPackets(const std::string& filepath, std::vector<Packet>& packets, const Graph* graph = nullptr);
     
     // Đọc kịch bản sự kiện (Scenario) từ file (Task B4.3, B4.7)
     static bool loadScenario(const std::string& filepath, Scenario& scenario);
     
     // Kiểm tra xem dòng có nên bỏ qua hay không (dòng trống hoặc bắt đầu bằng '#')
     static bool isSkippableLine(const std::string& line);
-    
-    // Chuyển đổi String -> Enum
-    static NodeType stringToNodeType(const std::string& str);
-    static MediaType stringToMediaType(const std::string& str);
-    static Protocol stringToProtocol(const std::string& str);
-    static PacketType stringToPacketType(const std::string& str);
-    static EventType stringToEventType(const std::string& str);
 };
 
 #endif 

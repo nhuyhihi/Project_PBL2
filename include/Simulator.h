@@ -37,6 +37,13 @@ public:
     
     // Task B4.6: Cập nhật trạng thái tải sau khi gửi
     static void updateNetworkState(Edge& edge, double dTrans);
+
+    // Task B6.1 & B6.5: Điều phối toàn bộ một kịch bản sự kiện & Logging ra file .txt
+    // Tách vòng lặp mô phỏng ra khỏi main.cpp để giữ cho main.cpp chỉ đóng vai trò Orchestrator
+    static void runScenarioSimulation(Graph& graph,
+                                     const std::vector<Packet>& packets,
+                                     const Scenario& scenario,
+                                     const std::string& logFilePath = "");
 };
 
 #endif // SIMULATOR_H

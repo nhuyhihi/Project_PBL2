@@ -94,9 +94,23 @@ int main() {
     // Total = 0.00422 + 0.00844 = 0.01266 s
     
     edge.mtu = 1500;
+    double hopDelay = DelayModel::calculateHopDelay(tcpPkt, edge, nextNode);
+    std::cout << "Hop Delay (no handshake): " << hopDelay << " s\n";
+    assert(isClose(hopDelay, 0.00422));
+
     double grandTotal = DelayModel::calculateTotalDelay(tcpPkt, edge, nextNode);
-    std::cout << "Grand Total Delay   : " << grandTotal << " s\n";
+    std::cout << "Grand Total Delay (1 hop): " << grandTotal << " s\n";
     assert(isClose(grandTotal, 0.01266));
+
+    // 9. Test Multi-hop TCP handshake (2 chặng: handshake chỉ tính 1 lần trên tổng 2 chặng)
+    // Giả sử chặng 1 = hopDelay (0.00422), chặng 2 = hopDelay (0.00422)
+    // Tổng trễ 2 chặng = 0.00422 * 2 = 0.00844
+    // Handshake overhead (1 RTT) = 2 * 0.00844 = 0.01688
+    // Tổng hành trình = 0.00844 + 0.01688 = 0.02532 s
+    double multiHopBase = hopDelay + hopDelay;
+    double multiHopTotal = multiHopBase + DelayModel::calcProtocolOverhead(tcpPkt, multiHopBase);
+    std::cout << "Multi-hop Total TCP Delay: " << multiHopTotal << " s\n";
+    assert(isClose(multiHopTotal, 0.02532));
 
     std::cout << "\n=> ALL MATH TESTS PASSED!\n";
     return 0;

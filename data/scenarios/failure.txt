@@ -1,0 +1,34 @@
+# Scenario: Failure & Recovery (Kịch bản sự cố và phục hồi đường truyền - Task B5.1)
+# Định dạng: [Time] [EventType] [TargetEdgeId] [Value]
+#
+# Topology mạng mẫu (nodes: 0..5):
+#   - Nhánh chính 0 -> 3: Edge #2 (0-2) và Edge #3 (2-3) [băng thông cao 10Gbps]
+#   - Nhánh vòng 0 -> 3: Edge #0 (0-1) và Edge #1 (1-3) [băng thông 1Gbps, backup]
+#   - Cạnh nối Host 4: Edge #6 (0-4) [Cạnh cầu duy nhất nối Host 4]
+#   - Cạnh nối Host 5: Edge #7 (3-5) [Cạnh cầu duy nhất nối Host 5]
+#   - Cạnh ngoài luồng: Edge #4 (1-2)
+#
+# ----------------------------------------------------------------------------------------------------
+# Case 1: Link ngoài path DOWN (Edge #4) -> Tuyến 0 -> 3 không bị ảnh hưởng, giữ nguyên lộ trình
+1.0 LINK_DOWN 4 0.0
+
+# Case 2: Link trên path DOWN (Edge #2: 0-2) -> Đứt đường chính 0->2->3, Dijkstra phải reroute sang 0->1->3
+2.0 LINK_DOWN 2 0.0
+
+# Case 3: LINK_UP phục hồi liên kết chính (Edge #2: 0-2) -> Tuyến tối ưu 0->2->3 tự động được khôi phục
+3.0 LINK_UP 2 0.0
+
+# Case 4: Multiple failures (Đứt đồng thời cả Edge #2 và Edge #0) -> Không còn đường từ 0 đến 3 -> DROP
+4.0 LINK_DOWN 2 0.0
+4.5 LINK_DOWN 0 0.0
+
+# Case 5: Phục hồi một đường (Edge #0) để cứu mạng thoát khỏi tình trạng DROP
+5.0 LINK_UP 0 0.0
+
+# Case 6: Cạnh cầu (Bridge) DOWN (Edge #6: 0-4) -> Host 4 bị cô lập hoàn toàn, không có đường thay thế
+6.0 LINK_DOWN 6 0.0
+
+# Case 7: Phục hồi toàn bộ trạng thái mạng về bình thường
+7.0 LINK_UP 2 0.0
+7.0 LINK_UP 4 0.0
+7.0 LINK_UP 6 0.0

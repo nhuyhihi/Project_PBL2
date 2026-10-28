@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <string>
 #include "DelayModel.h"
+#include "EnumUtils.h"
 
 namespace Reporter {
 
@@ -50,8 +51,7 @@ void printMSTReport(const Graph& graph, const CostModel& costModel) {
             totalMSTBackup += cost;
         }
 
-        std::string mediaStr = (edge.mediaType == MediaType::FIBER) ? "FIBER" : 
-                               ((edge.mediaType == MediaType::COPPER) ? "COPPER" : "WIRELESS");
+        std::string mediaStr = EnumUtils::toString(edge.mediaType);
         
         std::string uv = std::to_string(edge.u) + "-" + std::to_string(edge.v);
 
@@ -156,30 +156,99 @@ void printPacketRouteReport(const Graph& graph, const std::vector<Packet>& packe
         }
         std::cout << "\n";
 
-        // Buoc 2: di doc duong do, cong don do tre tung chang
+        // Buoc 2: di doc duong do, kiem tra MTU, phan manh va cong don do tre tung chang
         double totalDelay = 0.0;
         bool dropped = false;
+        std::string dropReason = "";
+        int maxFragments = 1;
         int cur = pkt.source;
         for (int edgeId : path.edges) {
             const Edge& e = graph.getEdge(edgeId);
             int nextId = graph.otherEndpoint(cur, edgeId);
             const Node& nextNode = graph.getNode(nextId);
 
-            double d = DelayModel::calculateTotalDelay(pkt, e, nextNode);
-            if (d == Config::INF) {
-                std::cout << "  => Goi tin bi ROT tai edge " << edgeId
-                          << " (day dut hoac qua kho MTU khong the phan manh)\n";
+            int fragments = DelayModel::calcFragmentCount(pkt.sizeBytes, e.mtu, pkt.canFragment);
+            if (fragments == 0) {
                 dropped = true;
+                dropReason = "DF_BLOCKED_BY_MTU_AT_EDGE_" + std::to_string(edgeId);
+                break;
+            }
+            maxFragments = std::max(maxFragments, fragments);
+
+            double d = DelayModel::calculateHopDelay(pkt, e, nextNode);
+            if (d == Config::INF) {
+                dropped = true;
+                dropReason = "LINK_DOWN_OR_UNREACHABLE";
                 break;
             }
             totalDelay += d;
             cur = nextId;
         }
 
-        if (!dropped) {
+        if (pkt.protocol == Protocol::TCP) {
+            totalDelay += DelayModel::calcProtocolOverhead(pkt, totalDelay);
+        }
+
+        std::cout << "  So manh Fragment     : " << maxFragments << " manh\n";
+        if (dropped) {
+            std::cout << "  Trang thai Packet    : DROP (" << dropReason << ")\n";
+        } else {
+            std::cout << "  Trang thai Packet    : SUCCESS\n";
             std::cout << "  Tong do tre uoc tinh : " << std::fixed << std::setprecision(6)
                       << totalDelay << " s\n";
         }
+    }
+    std::cout << "==============================================================\n";
+}
+
+static std::string formatPathString(const PathResult& path) {
+    if (!path.reachable || path.nodes.empty()) return "KHONG CO DUONG (UNREACHABLE)";
+    std::string s = "";
+    for (size_t i = 0; i < path.nodes.size(); ++i) {
+        s += std::to_string(path.nodes[i]);
+        if (i + 1 < path.nodes.size()) s += " -> ";
+    }
+    return s;
+}
+
+void printFailureRecoveryReport(const Graph& graph,
+                                const Packet& pkt,
+                                const PathResult& oldPath,
+                                int failedEdgeId,
+                                const PathResult& newPath,
+                                const std::string& note) {
+    std::cout << "\n==============================================================\n";
+    std::cout << "           BAO CAO SU CO & DINH TUYEN LAI (TASK B5.3)         \n";
+    std::cout << "==============================================================\n";
+    std::cout << "Packet ID    : #" << pkt.id << " (" << pkt.source << " -> " << pkt.destination << ")\n";
+    
+    // OLD PATH
+    std::cout << "OLD PATH     : " << formatPathString(oldPath);
+    if (oldPath.reachable) {
+        std::cout << " (Hops: " << oldPath.hopCount << ", Cost: " << std::fixed << std::setprecision(6) << oldPath.totalCost << ")";
+    }
+    std::cout << "\n";
+
+    // FAILED EDGE
+    std::cout << "FAILED EDGE  : ";
+    if (graph.hasEdge(failedEdgeId)) {
+        const Edge& e = graph.getEdge(failedEdgeId);
+        std::cout << "Edge #" << failedEdgeId << " (" << e.u << " - " << e.v << ") bi LINK_DOWN\n";
+    } else {
+        std::cout << "Edge #" << failedEdgeId << " (Unknown edge)\n";
+    }
+
+    // NEW PATH
+    std::cout << "NEW PATH     : " << formatPathString(newPath);
+    if (newPath.reachable) {
+        std::cout << " (Hops: " << newPath.hopCount << ", Cost: " << std::fixed << std::setprecision(6) << newPath.totalCost << ")\n";
+        std::cout << "KET QUA      : [THANH CONG] Da tim duong thay the thanh cong.\n";
+    } else {
+        std::cout << "\nKET QUA      : [DROP] Khong the dinh tuyen den dich (Bi co lap / Mat lien lac hoan toan).\n";
+    }
+
+    if (!note.empty()) {
+        std::cout << "GHI CHU      : " << note << "\n";
     }
     std::cout << "==============================================================\n";
 }
