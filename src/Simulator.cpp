@@ -127,18 +127,14 @@ SimulationResult Simulator::sendPacket(const Packet& packet, const PathResult& p
 
 // Task B4.6: updateNetworkState()
 void Simulator::updateNetworkState(Edge& edge, double dTrans) {
-    // Sử dụng giá trị từ Config, hoặc fallback về 1.0/0.99 nếu Config không có
-    double loadWindow = 1.0; 
-    double loadDecay = 0.99;
-    
     // loadDelta = dTrans / LOAD_WINDOW_SECONDS
-    double loadDelta = dTrans / loadWindow; 
+    double loadDelta = dTrans / Config::LOAD_WINDOW_SECONDS;
     
     // currentLoad = min(1.0, currentLoad + loadDelta)
-    edge.currentLoad = std::max(0.0, std::min(1.0, edge.currentLoad + loadDelta));
+    edge.currentLoad = std::max(0.0, std::min(Config::MAX_LOAD, edge.currentLoad + loadDelta));
     
-    // Có thể decay: currentLoad *= LOAD_DECAY
-    edge.currentLoad *= loadDecay;
+    // Decay: currentLoad *= LOAD_DECAY_RATE
+    edge.currentLoad *= Config::LOAD_DECAY_RATE;
 }
 
 // Task B6.1: runScenarioSimulation()

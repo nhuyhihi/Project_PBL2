@@ -145,7 +145,7 @@ BackupResult selectBackupLinks(Graph& g, const MSTResult& mst, int k, const Cost
     std::vector<int> candidates;
     for (int id : g.edgeIds()) {
         const Edge& e = g.getEdge(id);
-        if (!e.isBuilt && e.isUp && e.length <= e.maxSegmentLength) candidates.push_back(id);
+        if (!e.isBuilt && e.isUp && Validation::isStaticFeasible(e)) candidates.push_back(id);
     }
     std::sort(candidates.begin(), candidates.end(), [&](int x, int y) {
         return compareEdges(g.getEdge(x), g.getEdge(y), cost);

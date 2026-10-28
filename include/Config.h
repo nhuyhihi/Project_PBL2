@@ -7,6 +7,8 @@ namespace Config {
     // 1. Hằng số Mạng cơ bản
     const double MAX_LOAD = 1.0;               // Tải tối đa
     const double DEFAULT_TERRAIN_FACTOR = 1.0; // Hệ số địa hình mặc định
+    const double LOAD_WINDOW_SECONDS = 1.0;    // C?a s? th?i gian ?o t?i (gi?y)
+    const double LOAD_DECAY_RATE = 0.99;       // H? s? suy gi?m t?i sau m?i b??c
 
     // 2. Hằng số Thuật toán 
     const double INF = std::numeric_limits<double>::infinity(); // Đại diện cho đứt cáp/không liên thông

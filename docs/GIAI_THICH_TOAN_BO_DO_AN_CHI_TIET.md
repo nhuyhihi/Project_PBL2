@@ -1799,7 +1799,7 @@ DSU được sử dụng trong thuật toán Kruskal để kiểm tra xem việc
 149:     std::vector<int> candidates;
 150:     for (int id : g.edgeIds()) {
 151:         const Edge& e = g.getEdge(id);
-152:         if (!e.isBuilt && e.isUp && e.length <= e.maxSegmentLength) candidates.push_back(id);
+152:         if (!e.isBuilt && e.isUp && Validation::isStaticFeasible(e)) candidates.push_back(id);
 153:     }
 154:     std::sort(candidates.begin(), candidates.end(), [&](int x, int y) {
 155:         return compareEdges(g.getEdge(x), g.getEdge(y), cost);
