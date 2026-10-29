@@ -2192,4 +2192,147 @@ FINAL DEMO
 
 ---
 
+# 20. KẾ HOẠCH TRIỂN KHAI GIAO DIỆN ĐỒ HỌA (GUI - SFML + IMGUI)
+
+## 20.1. Mục tiêu và Định hướng thiết kế (KISS - Đơn giản, Thực tế, Dễ hiểu)
+1. **Tách biệt Backend và Frontend theo cách tự nhiên nhất:**
+   - **Backend:** Giữ nguyên 100% các class thuật toán lõi (`Graph`, `CostModel`, `Kruskal`, `Dijkstra`, `Simulator`).
+   - **Frontend:** Dùng **SFML** phụ trách vẽ canvas 2D (Node, Edge) và **ImGui** phụ trách thanh điều khiển, tabs số liệu, dropdown kịch bản.
+   - **Không áp dụng mô hình phức tạp (MVC, SOLID, đa luồng):** Toàn bộ giao diện chạy trong 1 luồng duy nhất (Single-threaded Game Loop). Chỉ dùng 1 cấu trúc trạng thái đơn giản `AppState` để lưu kết quả tính toán gần nhất (Node đang chọn, danh sách cạnh MST, đường đi Dijkstra hiện tại) để hàm vẽ lấy ra hiển thị.
+2. **Loại bỏ triệt để các tính năng rườm rà (No Over-engineering):**
+   - **Không làm Animation di chuyển gói tin**: Dùng cơ chế **đổi màu highlight trực tiếp** (nhanh, rõ ràng khi thuyết trình).
+   - **Không làm Zoom/Pan/Drag-Drop**: Thay vào đó, dùng **Circular Layout (Bố trí vòng tròn tự động)** bằng lượng giác cơ bản để đồ thị luôn cân đối bất kể file có bao nhiêu node.
+   - **Không vẽ nét đứt (Dashed Lines)**: Quy ước cáp Backup bằng **màu xanh dương mờ (kênh Alpha thấp)** để SFML vẽ 1 lệnh mượt mà 60 FPS.
+   - **Mô phỏng từng bước (Step-by-step)**: Dùng nút bấm `[▶ Bước kế tiếp (Step Next)]` thay vì chạy timeline phức tạp, giúp người thuyết trình hoàn toàn làm chủ tiến trình demo.
+
+---
+
+## 20.2. Bố cục màn hình tổng thể (UI Layout: 1280 x 720)
+
+```text
++---------------------------------------------------------------------------------------------------+
+| [VÙNG 1: TOP TOOLBAR (ImGui Menu Bar)]                                                            |
+| Chế độ hiển thị: (o) Lớp Vật lý (MST/Backup)   ( ) Lớp Logic (Routing/Traffic)                    |
+| Thao tác nhanh:  [⚡ Chạy Kruskal]   [💥 Mô phỏng Cắt Cáp]   [🔄 Khôi phục Mạng]   [❌ Thoát]      |
++-------------------------------------------------------------------+-------------------------------+
+|                                                                   | [VÙNG 3: BẢNG ĐIỀU KHIỂN &    |
+| [VÙNG 2: CANVAS ĐỒ THỊ MẠNG (SFML RenderWindow)]                  |  SỐ LIỆU ĐỘNG (ImGui Panel)]  |
+| - Chiếm 65% chiều rộng bên trái (vùng X: 0 -> 820px).             | - Chiếm 35% chiều rộng phải   |
+| - Tọa độ các Node tự động xếp thành hình tròn quanh tâm Canvas.    |   (vùng X: 820 -> 1280px).    |
+| - Node: Hình tròn Router/Host kèm ID và Name.                     | - Hệ thống Tabs trực quan:    |
+| - Edge: Vẽ đường nối giữa 2 Node:                                 |   + Tab 1: Bảng Cáp (MST)     |
+|   + Cáp MST: Nét đậm màu xanh lá cây (Alpha 255).                 |   + Tab 2: Bảng Định Tuyến    |
+|   + Cáp Backup: Màu xanh dương mờ (Alpha 120).                    |   + Tab 3: Mô phỏng Scenario  |
+|   + Cáp bị đứt (Down): Màu đỏ tươi.                               |                               |
+|   + Tuyến đường gói tin được chọn: Màu vàng viền sáng.            |                               |
+| - Click chuột trái vào 1 Node trên canvas -> Tab 2 tự động        |                               |
+|   chọn xem bảng định tuyến của Node đó.                           |                               |
++-------------------------------------------------------------------+-------------------------------+
+| [STATUS BAR (ImGui)]: Hiển thị trạng thái hệ thống và thông báo tóm tắt sự kiện vừa diễn ra        |
++---------------------------------------------------------------------------------------------------+
+```
+
+---
+
+## 20.3. Chi tiết các Task triển khai theo từng Phase
+
+### PHASE 1: TÍCH HỢP MÔI TRƯỜNG & KHỞI TẠO CỬA SỔ
+- **Mục tiêu:** Cấu hình thư viện SFML + ImGui-SFML, tạo file `main_gui.cpp` với game loop tuần tự đơn giản.
+- **Task G1.1 - Cấu hình thư viện và Build System:**
+  - Tích hợp header & lib SFML và bộ wrapper `imgui-sfml` (`imgui.h`, `imgui.cpp`, `imgui_draw.cpp`, `imgui_tables.cpp`, `imgui_widgets.cpp`, `imgui-SFML.h`, `imgui-SFML.cpp`).
+  - Cập nhật lệnh biên dịch: `g++ -std=c++17 -Wall -Iinclude main_gui.cpp src/*.cpp ... -lsfml-graphics -lsfml-window -lsfml-system -lopengl32 -o bin/main_gui.exe`.
+- **Task G1.2 - Tạo game loop cơ bản (`main_gui.cpp`):**
+  - Khởi tạo cửa sổ SFML `1280 x 720` và `ImGui::SFML::Init(window);`.
+  - Khai báo struct trạng thái đơn giản `AppState` có hàm `reset()` để dọn sạch rác bộ nhớ khi khôi phục mạng:
+    ```cpp
+    struct AppState {
+        int selectedNode = 0;
+        int activeScenarioIdx = 0;
+        int currentEventStep = 0;
+        MSTResult mstResult;
+        PathResult currentPath;
+
+        void reset(int defaultNodeId = 0) {
+            selectedNode = defaultNodeId;
+            currentEventStep = 0;
+            mstResult = MSTResult();
+            currentPath = PathResult();
+        }
+    };
+    ```
+  - Xây dựng vòng lặp tuần tự: Nhận event -> Update ImGui -> SFML Clear -> Vẽ Canvas đồ họa -> Render ImGui -> Window Display.
+
+---
+
+### PHASE 2: CANVAS ĐỒ THỊ MẠNG (SFML RENDERER)
+- **Mục tiêu:** Hiển thị trực quan mạng từ `Graph` lên Canvas bên trái một cách tự động, không hardcode tọa độ.
+- **Task G2.1 - Thuật toán Circular Layout (Bố trí vòng tròn tự động):**
+  - Thay vì gán cứng tọa độ, tính toán tự động theo số lượng node trong `Graph`:
+    ```cpp
+    std::unordered_map<int, sf::Vector2f> nodePositions;
+    float centerX = 410.0f, centerY = 360.0f, radius = 240.0f;
+    std::vector<int> ids = graph.nodeIds();
+    int n = ids.size();
+    for (int i = 0; i < n; ++i) {
+        float angle = i * (2.0f * 3.14159265f / n) - 3.14159265f / 2.0f;
+        nodePositions[ids[i]] = sf::Vector2f(centerX + radius * cos(angle), centerY + radius * sin(angle));
+    }
+    ```
+  - Giữ cho đồ thị luôn tròn đều, đẹp mắt, không bao giờ bị đè node dù nạp file có 4 hay 20 node.
+- **Task G2.2 - Thứ tự vẽ (Z-Order) & Vẽ liên kết cáp (Edges):**
+  - **QUY TẮC RENDER QUAN TRỌNG:** Luôn vẽ toàn bộ Dây cáp (Edges) **TRƯỚC**, sau đó mới vẽ các Node (Circles + Labels) đè lên trên để các đường dây không cắt ngang tâm và đè lên chữ.
+  - Dùng `sf::VertexArray(sf::Lines, 2)` nối giữa 2 tọa độ node.
+  - Quy ước màu sắc đơn giản (KISS):
+    - Cáp chưa xây (Unbuilt): Xám mờ `sf::Color(120, 120, 120, 70)`.
+    - Cáp MST chính: Xanh lá cây đậm `sf::Color(46, 204, 113, 255)`.
+    - Cáp Backup: Xanh dương mờ `sf::Color(52, 152, 219, 120)` (thay thế cho việc vẽ nét đứt phức tạp).
+    - Cáp bị đứt (`isUp == false`): Đỏ tươi `sf::Color(231, 76, 60, 255)`.
+    - Cáp thuộc tuyến Dijkstra đang chọn: Vàng kim viền sáng `sf::Color(241, 196, 15, 255)`.
+- **Task G2.3 - Vẽ Node và Nhãn tên (Vẽ sau Edges):**
+  - Vẽ đè hình tròn `sf::CircleShape(20.0f)` lên trên đầu các đoạn dây cáp.
+  - In ID và tên node (ví dụ: `Node 0: HN`) rõ ràng bên trong hoặc bên cạnh node.
+- **Task G2.4 - Bắt sự kiện click chuột chọn Node (Chống xuyên thấu ImGui):**
+  - **CHỐNG EVENT BLEEDING:** Chỉ xử lý click chọn Node khi chuột KHÔNG nằm trên giao diện ImGui:
+    ```cpp
+    if (!ImGui::GetIO().WantCaptureMouse) {
+        if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+            sf::Vector2f mousePos(event.mouseButton.x, event.mouseButton.y);
+            // Kiểm tra click trúng Node nào thì gán appState.selectedNode = clickedId
+        }
+    }
+    ```
+
+---
+
+### PHASE 3: BẢNG SỐ LIỆU & ĐIỀU KHIỂN (IMGUI CONTROLLER)
+- **Mục tiêu:** Nối toàn bộ chức năng của PBL2 (Kruskal, Routing Table, 6 Kịch bản) thành các nút bấm và bảng trực quan.
+- **Task G3.1 - Thanh Top Toolbar (Thao tác nhanh):**
+  - Nút bấm `[⚡ Chạy MST (Kruskal)]`: Gọi `buildMST()` và `selectBackupLinks()`, cập nhật ngay vào `appState.mstResult`. Canvas lập tức đổi màu các dây MST và Backup.
+  - Nút bấm `[💥 Cắt cáp thử nghiệm]`: Danh sách combo chọn 1 cạnh bất kỳ để đặt `isUp = false`, kiểm tra tính năng chịu lỗi.
+  - Nút bấm `[🔄 Khôi phục Mạng]`: Đặt lại đồ thị về trạng thái sạch ban đầu, đồng thời gọi `appState.reset(graph.nodeIds().front());` để xóa sạch trạng thái cũ, chống lỗi truy xuất ngoài vùng nhớ.
+- **Task G3.2 - Tab 1: Báo cáo Quy hoạch Cáp (Physical View):**
+  - Dùng `ImGui::BeginTable()` hiển thị: `Edge ID`, `Link (U-V)`, `Media`, `Role (MST/Backup)`, `Cost (DV)`, `Status`.
+  - Hiển thị 3 con số tổng kết chi phí: *Build All*, *Chỉ xây MST*, *MST + Backup*.
+- **Task G3.3 - Tab 2: Bảng Định Tuyến Toàn Mạng (Logical View):**
+  - Dropdown chọn Node nguồn (mặc định lấy theo `appState.selectedNode`).
+  - Bảng định tuyến chi tiết: `Node Đích`, `Next Hop`, `Số Hop`, `Chi phí trễ (Cost)`, `Đường đi chi tiết`.
+  - Khi có sự cố đứt cáp ở Task G3.1, bảng định tuyến tự động cập nhật dòng đường đi mới (Reroute) ngay trước mắt người xem.
+- **Task G3.4 - Tab 3: Mô phỏng Kịch Bản Sự Kiện (Scenario Step-by-Step):**
+  - Dropdown chọn 1 trong 6 kịch bản sẵn có (`basic`, `qos`, `congestion`, `mtu`, `failure`, `redundancy`).
+  - Nút bấm `[▶ Bước kế tiếp (Step Next)]` và `[🔄 Bắt đầu lại kịch bản]`:
+    - Mỗi lần bấm `[Step Next]`, áp dụng sự kiện tiếp theo trong kịch bản (ví dụ mốc `0.0s` -> `1.5s`).
+    - Dây cáp tương ứng đổi màu, bảng log bên dưới đẩy thêm dòng sự kiện mới.
+    - Cực kỳ thuận tiện, chủ động cho sinh viên khi đứng thuyết trình và trả lời câu hỏi của hội đồng chấm thi.
+
+---
+
+## 20.4. Tiêu chí nghiệm thu hoàn thành (Acceptance Criteria)
+1. Biên dịch thành công file đồ họa `bin/main_gui.exe`, không có lỗi warning hoặc xung đột với code lõi.
+2. Canvas SFML tự động bố trí các Node theo vòng tròn đều đặn, không bị chồng chéo hay tràn màn hình.
+3. Bấm `[Chạy Kruskal]` -> Màu dây cáp trên canvas đổi sang Xanh lá (MST) và Xanh dương mờ (Backup) chuẩn xác.
+4. Bấm `[Step Next]` trong Tab Kịch bản -> Sự kiện áp dụng tuần tự từng bước, đường đi Dijkstra đổi màu vàng/đỏ tương ứng, bảng định tuyến nhảy số đồng bộ.
+5. Mã nguồn gọn gàng, chạy 1 luồng duy nhất, không dùng các mô hình thiết kế phức tạp (MVC, SOLID) gây khó đọc.
+
+---
+
 # END

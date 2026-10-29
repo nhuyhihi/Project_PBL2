@@ -69,7 +69,7 @@ int main() {
     std::cout << "=> He thong mang da san sang: " << baseGraph.V() << " nodes, " 
               << baseGraph.E() << " edges, " << packets.size() << " packets.\n";
 
-    // 3. VÒNG LẶP MENU TƯƠNG TÁC (TASK B6.2)
+    // 3. VÒNG LẶP MENU TƯƠNG TÁC 
     std::string inputLine;
     while (true) {
         displayMenu();
