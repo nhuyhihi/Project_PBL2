@@ -1,3 +1,6 @@
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include <iostream>
 #include <vector>
 #include <string>
@@ -47,6 +50,10 @@ void runSelectedScenario(Graph& baseGraph, const std::vector<Packet>& packets, c
 }
 
 int main() {
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
     // 1. NẠP DỮ LIỆU CỐT LÕI VÀ KIỂM TRA HỢP LỆ
     Graph baseGraph;
     if (!IOManager::loadNodes("data/nodes.txt", baseGraph) ||
