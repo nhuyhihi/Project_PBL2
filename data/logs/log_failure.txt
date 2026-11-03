@@ -7,20 +7,20 @@ Tong so ban ghi log : 16
 Time(s) Packet  Src   Dst   Hop   Frag    Delay(s)    Status    Path                Failure / Note              
 --------------------------------------------------------------------------------------------------------
 1.0     #0      0     3     2     1       0.002256    SUCCESS   0->2->3             LINK_DOWN Edge #4
-1.0     #1      0     3     2     3       0.020427    SUCCESS   0->2->3             LINK_DOWN Edge #4
+1.0     #1      0     3     2     3       0.006809    SUCCESS   0->2->3             LINK_DOWN Edge #4
 2.0     #0      0     3     2     1       0.002233    SUCCESS   0->1->3             LINK_DOWN Edge #2 | [REROUTED]
-2.0     #1      0     3     2     3       0.021316    SUCCESS   0->1->3             LINK_DOWN Edge #2 | [REROUTED]
+2.0     #1      0     3     2     3       0.007106    SUCCESS   0->1->3             LINK_DOWN Edge #2 | [REROUTED]
 3.0     #0      0     3     2     1       0.002256    SUCCESS   0->2->3             LINK_UP Edge #2 | [REROUTED]
-3.0     #1      0     3     2     3       0.020427    SUCCESS   0->2->3             LINK_UP Edge #2 | [REROUTED]
+3.0     #1      0     3     2     3       0.006809    SUCCESS   0->2->3             LINK_UP Edge #2 | [REROUTED]
 4.0     #0      0     3     2     1       0.002233    SUCCESS   0->1->3             LINK_DOWN Edge #2 | [REROUTED]
-4.0     #1      0     3     2     3       0.021316    SUCCESS   0->1->3             LINK_DOWN Edge #2 | [REROUTED]
+4.0     #1      0     3     2     3       0.007106    SUCCESS   0->1->3             LINK_DOWN Edge #2 | [REROUTED]
 4.5     #0      0     3     -     0       -           DROP      UNREACHABLE         LINK_DOWN Edge #0 | DROP: NO_PATH_AVAILABLE
 4.5     #1      0     3     -     0       -           DROP      UNREACHABLE         LINK_DOWN Edge #0 | DROP: NO_PATH_AVAILABLE
 5.0     #0      0     3     2     1       0.002233    SUCCESS   0->1->3             LINK_UP Edge #0 | [REROUTED]
-5.0     #1      0     3     2     3       0.021316    SUCCESS   0->1->3             LINK_UP Edge #0 | [REROUTED]
+5.0     #1      0     3     2     3       0.007106    SUCCESS   0->1->3             LINK_UP Edge #0 | [REROUTED]
 6.0     #0      0     3     2     1       0.002233    SUCCESS   0->1->3             LINK_DOWN Edge #6
-6.0     #1      0     3     2     3       0.021316    SUCCESS   0->1->3             LINK_DOWN Edge #6
+6.0     #1      0     3     2     3       0.007106    SUCCESS   0->1->3             LINK_DOWN Edge #6
 7.0     #0      0     3     2     1       0.002256    SUCCESS   0->2->3             LINK_UP Edge #2, LINK_UP Edge #4, LINK_UP Edge #6 | [REROUTED]
-7.0     #1      0     3     2     3       0.020427    SUCCESS   0->2->3             LINK_UP Edge #2, LINK_UP Edge #4, LINK_UP Edge #6 | [REROUTED]
+7.0     #1      0     3     2     3       0.006809    SUCCESS   0->2->3             LINK_UP Edge #2, LINK_UP Edge #4, LINK_UP Edge #6 | [REROUTED]
 --------------------------------------------------------------------------------------------------------
 Ket thuc nhat ky mo phong.
