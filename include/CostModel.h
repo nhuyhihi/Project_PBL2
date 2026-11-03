@@ -26,13 +26,6 @@ class CostModel {
 private:
     PricingConfig config; // Thuộc tính private: Đảm bảo đóng gói tuyệt đối
 public:
-    // Hỗ trợ Singleton Pattern để tiện truy cập bảng giá toàn cục xuyên suốt dự án
-    static CostModel& getInstance() {
-        static CostModel instance;
-        return instance;
-    }
-
-    // Constructor mặc định (vẫn hỗ trợ tạo instance riêng nếu cần)
     CostModel() = default;
 
     // Nạp cấu hình từ file text
@@ -42,4 +35,4 @@ public:
     CostBreakdown calculateCablingCost(const Edge& edge) const;
 };
 
-#endif 
+#endif

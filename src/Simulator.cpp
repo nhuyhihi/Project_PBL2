@@ -1,32 +1,18 @@
 #include "Simulator.h"
 #include "DelayModel.h"
-#include "Config.h" // Chứa LOAD_WINDOW_SECONDS và LOAD_DECAY
+#include "Config.h"
 #include "Dijkstra.h"
 #include "RoutingCost.h"
+#include "FailureHandler.h"
 #include "EnumUtils.h"
+#include "Logger.h"
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <iomanip>
+#include <unordered_map>
 
-// Task B4.2: snapshotNetworkState()
-// Mục đích: Dijkstra chạy trên trạng thái cố định trong một lần tính.
-NetworkSnapshot Simulator::snapshotNetworkState(const Graph& graph) {
-    NetworkSnapshot snap;
-    
-    // Copy isUp, load, queueDelay từ graph sang snapshot
-    for (int edgeId : graph.edgeIds()) {
-        const Edge& edge = graph.getEdge(edgeId);
-        
-        snap.isUp[edgeId] = edge.isUp;
-        snap.load[edgeId] = edge.currentLoad;
-        snap.queueDelay[edgeId] = edge.queueDelay;
-    }
-    
-    return snap;
-}
-
-// Task B4.4: applyEvent()
-// Mục đích: Áp dụng các sự kiện thay đổi trạng thái mạng (Load, Delay)
+// Áp dụng các sự kiện thay đổi trạng thái mạng (Load, Delay, Link Up/Down)
 void Simulator::applyEvent(Graph& graph, const ScenarioEvent& event) {
     if (!graph.hasEdge(event.targetId)) {
         std::cerr << "[Simulator] Canh bao: Event bo qua do Edge #" << event.targetId << " khong ton tai trong do thi!\n";
@@ -45,13 +31,8 @@ void Simulator::applyEvent(Graph& graph, const ScenarioEvent& event) {
             break;
 
         case EventType::LINK_DOWN:
-            // Làm đứt/hỏng đường truyền vật lý
-            targetEdge.isUp = false;
-            break;
-
         case EventType::LINK_UP:
-            // Phục hồi lại kết nối của cáp
-            targetEdge.isUp = true;
+            FailureHandler::applyLinkEvent(graph, event.eventType, event.targetId);
             break;
 
         default:
@@ -59,18 +40,16 @@ void Simulator::applyEvent(Graph& graph, const ScenarioEvent& event) {
     }
 }
 
-// Task B4.5: sendPacket()
-SimulationResult Simulator::sendPacket(const Packet& packet, const PathResult& path, Graph& graph) {
+// Đánh giá kết quả truyền gói tin (Read-Only: nhận const Graph&, không làm bẩn currentLoad)
+SimulationResult Simulator::evaluatePacket(const Packet& packet, const PathResult& path, const Graph& graph) {
     SimulationResult result;
-    
-    // Nếu Dijkstra trả về không có đường đi (reachable = false)
+
     if (!path.reachable || path.edges.empty()) {
         result.success = false;
         result.failReason = "NO_ROUTE_AVAILABLE";
         return result;
     }
 
-    // Duyệt qua từng cạnh trên đường đi
     for (size_t i = 0; i < path.edges.size(); ++i) {
         int edgeId = path.edges[i];
         if (!graph.hasEdge(edgeId)) {
@@ -78,10 +57,8 @@ SimulationResult Simulator::sendPacket(const Packet& packet, const PathResult& p
             result.failReason = "EDGE_NOT_FOUND_ERROR";
             return result;
         }
-        Edge& edge = graph.getEdge(edgeId);
-        
-        // Tìm nextNode (sử dụng node tiếp theo trong path.nodes nếu có)
-        // Lấy ID node tiếp theo để DelayModel tính toán Processing Delay
+        const Edge& edge = graph.getEdge(edgeId);
+
         int nextNodeId = (i + 1 < path.nodes.size()) ? path.nodes[i + 1] : graph.otherEndpoint(path.nodes[i], edgeId);
         if (!graph.hasNode(nextNodeId)) {
             result.success = false;
@@ -90,59 +67,52 @@ SimulationResult Simulator::sendPacket(const Packet& packet, const PathResult& p
         }
         const Node& nextNode = graph.getNode(nextNodeId);
 
-            // Kiểm tra MTU & Tính số mảnh bằng hàm có sẵn của DelayModel (Task B3.7)
-            int fragments = DelayModel::calcFragmentCount(packet.sizeBytes, edge.mtu, packet.canFragment);
-            if (fragments == 0) { // Trả về 0 nghĩa là không cho phép phân mảnh và quá kích thước
-                result.success = false;
-                result.failReason = "DF_BLOCKED_BY_MTU_AT_EDGE_" + std::to_string(edgeId);
-                return result; 
-            }
-            // Cập nhật fragmentCount (mảnh lớn nhất trên toàn bộ đường đi)
-            result.fragmentCount = std::max(result.fragmentCount, fragments);
+        int fragments = DelayModel::calcFragmentCount(packet.sizeBytes, edge.mtu, packet.canFragment);
+        if (fragments == 0) {
+            result.success = false;
+            result.failReason = "DF_BLOCKED_BY_MTU_AT_EDGE_" + std::to_string(edgeId);
+            return result;
+        }
+        result.fragmentCount = std::max(result.fragmentCount, fragments);
 
-            // Tính độ trễ từng chặng (Hop Delay), tránh cộng dồn TCP handshake nhiều lần
-            double edgeDelay = DelayModel::calculateHopDelay(packet, edge, nextNode);
-            if (edgeDelay == Config::INF) {
-                result.success = false;
-                result.failReason = "LINK_DOWN_OR_UNREACHABLE";
-                return result;
-            }
-            result.totalDelay += edgeDelay;
-
-            // CHÚ Ý DRY: Tính lại dTrans để phục vụ updateNetworkState 
-            double dTrans = DelayModel::calcTransmissionDelay(packet.sizeBytes, edge.bandwidthMbps);
-            
-            // Cập nhật tải 
-            updateNetworkState(edge, dTrans);
+        double edgeDelay = DelayModel::calculateHopDelay(packet, edge, nextNode);
+        if (edgeDelay == Config::INF) {
+            result.success = false;
+            result.failReason = "LINK_DOWN_OR_UNREACHABLE";
+            return result;
+        }
+        result.totalDelay += edgeDelay;
     }
 
-    // Cộng TCP overhead một lần duy nhất vào tổng hành trình (Task B3.8)
     if (packet.protocol == Protocol::TCP) {
-        // Dùng totalDelay vừa tính được để ước tính RTT (Round Trip Time)
         result.totalDelay += DelayModel::calcProtocolOverhead(packet, result.totalDelay);
     }
 
     return result;
 }
 
-// Task B4.6: updateNetworkState()
+// Gửi gói tin thực tế: đánh giá độ trễ qua evaluatePacket rồi cập nhật tải trên Graph
+SimulationResult Simulator::sendPacket(const Packet& packet, const PathResult& path, Graph& graph) {
+    SimulationResult result = evaluatePacket(packet, path, graph);
+    if (!result.success) {
+        return result;
+    }
+
+    for (int edgeId : path.edges) {
+        Edge& edge = graph.getEdge(edgeId);
+        double dTrans = DelayModel::calcTransmissionDelay(packet.sizeBytes, edge.bandwidthMbps);
+        updateNetworkState(edge, dTrans);
+    }
+
+    return result;
+}
+
 void Simulator::updateNetworkState(Edge& edge, double dTrans) {
-    // loadDelta = dTrans / LOAD_WINDOW_SECONDS
     double loadDelta = dTrans / Config::LOAD_WINDOW_SECONDS;
-    
-    // currentLoad = min(1.0, currentLoad + loadDelta)
     edge.currentLoad = std::max(0.0, std::min(Config::MAX_LOAD, edge.currentLoad + loadDelta));
-    
-    // Decay: currentLoad *= LOAD_DECAY_RATE
     edge.currentLoad *= Config::LOAD_DECAY_RATE;
 }
 
-// Task B6.1: runScenarioSimulation()
-// Thực thi trọn vẹn kịch bản mô phỏng sự kiện, in ấn kết quả tự động, giúp main.cpp hoàn toàn sạch sẽ
-#include "Logger.h"
-
-// Task B6.1, B6.2 & B6.5: runScenarioSimulation()
-// Thực thi trọn vẹn kịch bản mô phỏng sự kiện, in ấn kết quả tự động, và xuất log ra file .txt nếu có yêu cầu
 void Simulator::runScenarioSimulation(Graph& graph,
                                      const std::vector<Packet>& packets,
                                      const Scenario& scenario,
@@ -156,8 +126,9 @@ void Simulator::runScenarioSimulation(Graph& graph,
 
     if (scenario.events.empty()) {
         std::cout << "(Kich ban tinh - Khong co su kien dong, tien hanh kiem tra truyen goi tin truc tiep):\n";
+        const Graph snapshot = graph;
         for (const Packet& pkt : packets) {
-            PathResult path = dijkstra(graph, pkt.source, pkt.destination,
+            PathResult path = dijkstra(snapshot, pkt.source, pkt.destination,
                                        RoutingCost::makeWeightFn(pkt), /*onlyBuilt=*/true);
 
             std::string pktTypeStr = EnumUtils::toString(pkt.type);
@@ -217,7 +188,6 @@ void Simulator::runScenarioSimulation(Graph& graph,
         return;
     }
 
-    // Nhóm các sự kiện theo từng mốc thời gian (Time) để tránh in lặp lại nhiều lần
     std::vector<std::pair<double, std::vector<ScenarioEvent>>> timeGroups;
     for (const auto& ev : scenario.events) {
         if (timeGroups.empty() || std::abs(timeGroups.back().first - ev.time) > 1e-6) {
@@ -227,7 +197,6 @@ void Simulator::runScenarioSimulation(Graph& graph,
         }
     }
 
-    // Lưu lại lộ trình cũ của từng gói tin để nhận biết khi nào có sự thay đổi (Reroute)
     std::unordered_map<int, std::vector<int>> lastRoute;
     std::unordered_map<int, bool> lastSuccess;
 
@@ -247,7 +216,7 @@ void Simulator::runScenarioSimulation(Graph& graph,
                 evDesc = "LOAD_UPDATE Edge #" + std::to_string(ev.targetId);
             } else if (ev.eventType == EventType::DELAY_UPDATE) {
                 std::cout << "  * Su kien: DELAY_UPDATE tren Edge #" << ev.targetId 
-                          << " -> Trở ngai moi: " << std::setprecision(4) << ev.value << "s\n";
+                          << " -> Tro ngai moi: " << std::setprecision(4) << ev.value << "s\n";
                 evDesc = "DELAY_UPDATE Edge #" + std::to_string(ev.targetId);
             } else if (ev.eventType == EventType::LINK_DOWN) {
                 std::cout << "  * CANH BAO: LINK_DOWN tren Edge #" << ev.targetId << " (Cap bi dut / hong hoc!)\n";
@@ -263,13 +232,13 @@ void Simulator::runScenarioSimulation(Graph& graph,
             applyEvent(graph, ev);
         }
 
-        // 2. Chụp snapshot trạng thái mạng cố định tại mốc t
-        NetworkSnapshot snap = snapshotNetworkState(graph);
+        // 2. Chụp bản sao bất biến trạng thái mạng tại mốc t để mọi gói tin cùng thời điểm định tuyến trên trạng thái cố định
+        const Graph snapshot = graph;
 
         // 3. Mô phỏng truyền các gói tin tại thời điểm t
         std::cout << "  -> Ket qua dinh tuyen va truyen goi tin:\n";
         for (const Packet& pkt : packets) {
-            PathResult path = dijkstra(graph, pkt.source, pkt.destination,
+            PathResult path = dijkstra(snapshot, pkt.source, pkt.destination,
                                        RoutingCost::makeWeightFn(pkt), /*onlyBuilt=*/true);
 
             std::string pktTypeStr = EnumUtils::toString(pkt.type);

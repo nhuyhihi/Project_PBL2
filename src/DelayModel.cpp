@@ -7,7 +7,6 @@ namespace DelayModel {
     double calcTransmissionDelay(int sizeBytes, double bandwidthMbps) {
         if (bandwidthMbps <= 0) return Config::INF;
         // Công thức: (sizeBytes * 8) / (bandwidthMbps * 1e6)
-        // Đổi byte ra bit và Mbps ra bps
         return (sizeBytes * 8.0) / (bandwidthMbps * 1000000.0);
     }
 
@@ -17,51 +16,40 @@ namespace DelayModel {
     }
 
     double calcProcessingDelay(const Node& nextNode) {
-        // Trễ do CPU của Router đích xử lý
         return nextNode.processingTime;
     }
 
     double calcQueueDelay(double baseQueueDelay, double currentLoad) {
-        // Trễ hàng đợi bị khuếch đại nếu cáp đang tắc nghẽn (Dùng hàm của RoutingCost, tuân thủ DRY)
         return baseQueueDelay * RoutingCost::congestionPenalty(currentLoad);
     }
 
     double calcBaseDelay(const Packet& packet, const Edge& edge, const Node& nextNode) {
-        if (!edge.isUp) return Config::INF; // Cáp đứt thì không truyền được
+        if (!edge.isUp) return Config::INF;
 
         double dTrans = calcTransmissionDelay(packet.sizeBytes, edge.bandwidthMbps);
-        
-        // Cáp quang/đồng thì truyền theo tốc độ ánh sáng trong thủy tinh/đồng (~2e8)
-        // Wireless truyền theo tốc độ ánh sáng trong không khí (~3e8)
-        double propSpeed = (edge.mediaType == MediaType::WIRELESS) ? 
+        double propSpeed = (edge.mediaType == MediaType::WIRELESS) ?
                            Config::SPEED_OF_LIGHT_AIR : Config::SPEED_OF_LIGHT_FIBER;
-                           
         double dProp = calcPropagationDelay(edge.length, propSpeed);
-        
         double dProc = calcProcessingDelay(nextNode);
         double dQueue = calcQueueDelay(edge.queueDelay, edge.currentLoad);
 
-        // Cộng dồn 4 loại trễ
         return dTrans + dProp + dProc + dQueue;
     }
 
     int calcFragmentCount(int sizeBytes, int mtu, bool canFragment) {
         if (sizeBytes <= mtu) return 1;
         if (!canFragment) return 0; // DF bit is set, packet drops
-        
-        // Payload mỗi mảnh = mtu - 20 byte header
+
         int payload = mtu - 20;
-        if (payload <= 0) return 0; // Tránh lỗi chia 0 nếu MTU quá nhỏ
-        
-        // Tính số mảnh: ceil(size / payload)
+        if (payload <= 0) return 0;
+
         int n = sizeBytes / payload;
-        if (sizeBytes % payload != 0) n++; // Làm tròn lên
+        if (sizeBytes % payload != 0) n++;
         return n;
     }
 
     double calcProtocolOverhead(const Packet& packet, double oneWayDelay) {
         if (packet.protocol == Protocol::TCP && packet.newConnection) {
-            // TCP 3-way handshake tốn 1 RTT (Round Trip Time = 2 * One-way Delay)
             return 2.0 * oneWayDelay;
         }
         return 0.0;
@@ -70,27 +58,14 @@ namespace DelayModel {
     double calculateHopDelay(const Packet& packet, const Edge& edge, const Node& nextNode) {
         if (!edge.isUp) return Config::INF;
 
-        // 1. Kiểm tra phân mảnh
         int fragments = calcFragmentCount(packet.sizeBytes, edge.mtu, packet.canFragment);
-        if (fragments == 0) return Config::INF; // Bị rớt gói tin do quá to mà không cho băm
+        if (fragments == 0) return Config::INF;
 
-        // 2. Tính Base Delay cơ bản (trường hợp 1 mảnh không phân mảnh)
         double baseDelay = calcBaseDelay(packet, edge, nextNode);
         if (baseDelay == Config::INF) return Config::INF;
 
-        // 3. Nếu phải phân mảnh (fragments > 1), trễ phát dTrans sẽ tăng thêm cho (fragments - 1) mảnh phụ
         double dTrans = calcTransmissionDelay(packet.sizeBytes, edge.bandwidthMbps);
         return baseDelay + dTrans * (fragments - 1);
-    }
-
-    double calculateTotalDelay(const Packet& packet, const Edge& edge, const Node& nextNode) {
-        double oneWayDelay = calculateHopDelay(packet, edge, nextNode);
-        if (oneWayDelay == Config::INF) return Config::INF;
-
-        // 3. Tính Overhead của Giao thức (TCP/UDP) nếu xét đơn lẻ trên 1 cạnh
-        double overhead = calcProtocolOverhead(packet, oneWayDelay);
-
-        return oneWayDelay + overhead;
     }
 
 }

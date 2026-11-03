@@ -23,24 +23,19 @@
 // ============================================================
 
 // Hàm tính chi phí lắp đặt của một dây (đơn vị ĐV).
-// Kruskal không tự biết công thức, để nhóm đổi được công thức mà không sửa thuật toán.
-// Khi CostModel (bạn B) xong thì truyền hàm calculateCablingCost vào đây.
 using CostFn = std::function<double(const Edge&)>;
-
-// Công thức tạm dùng khi chưa có CostModel (lấy đơn giá chuẩn theo mediaType):
-//   length * unitPrice * terrainFactor + equipmentCost + maintenanceCost
 
 // Số dây dự phòng mặc định
 constexpr int DEFAULT_BACKUP_LINKS = 2;
 
-// Kết quả xây cây khung (khớp task board mục 3.6)
+// Kết quả xây cây khung
 struct MSTResult {
     std::vector<int> edgeIds;          // các edge được chọn, theo thứ tự chọn
-    double           totalCost = 0.0;  // tổng chi phí lắp đặt các edge đó (không tính thiết bị)
+    double           totalCost = 0.0;  // tổng chi phí lắp đặt các edge đó
     bool             connected = false; // true nếu nối được TẤT CẢ node (đủ V-1 cạnh)
 };
 
-// Lý do một edge bị loại (dùng để giải thích trong báo cáo)
+// Lý do một edge bị loại (dùng để giải thích trên giao diện và báo cáo)
 enum class RejectReason { NONE, LINK_DOWN, TOO_LONG, CYCLE, NO_PORT };
 const char* toString(RejectReason r);
 
@@ -50,16 +45,11 @@ struct Rejection {
 };
 
 // So sánh hai edge để sắp xếp: chi phí tăng dần, bằng nhau thì edgeId nhỏ hơn trước.
-// Tie-breaker theo id giúp hai lần chạy cùng dữ liệu cho CÙNG kết quả.
 bool compareEdges(const Edge& a, const Edge& b, const CostFn& cost);
 
 // Kiểm tra một edge có chọn được lúc này không. Trả NONE nếu được, ngược lại là lý do.
 // Thứ tự kiểm tra: down -> quá dài -> chu trình -> hết cổng.
-// (dsu không const vì find() có path compression)
 RejectReason checkEdge(const Graph& g, const Edge& e, DSU& dsu);
-inline bool canSelectEdge(const Graph& g, const Edge& e, DSU& dsu) {
-    return checkEdge(g, e, dsu) == RejectReason::NONE;
-}
 
 // Xây cây khung. Reset trạng thái xây dựng của g trước, nên gọi lại nhiều lần vẫn đúng.
 // Cập nhật g: usedPorts của node, isBuilt của edge.
@@ -75,23 +65,10 @@ struct BackupResult {
     int              protectedTreeEdges = 0; // số cạnh cây CÓ đường thay thế sau khi thêm backup
 };
 
-// Chọn tối đa k dây dự phòng. Chiến lược (tham lam theo độ bảo vệ):
-//   - Xét các edge chưa xây, hợp lệ, còn cổng, theo thứ tự compareEdges (rẻ trước)
-//   - Một edge nối u-v "bảo vệ" các cạnh cây nằm trên đường u->v trong cây:
-//     nếu một cạnh đó đứt, edge này nối lại hai phía
-//   - Chỉ chọn edge bảo vệ THÊM ít nhất một cạnh cây chưa được bảo vệ
-//     (không chọn dây tốn tiền mà không thêm lợi gì)
-// Có thể trả về ít hơn k edge nếu không còn edge nào thêm được sự bảo vệ.
-// Cạnh cây không thể bảo vệ (vd host chỉ có 1 cổng) không tính vào protectedTreeEdges.
+// Chọn tối đa k dây dự phòng theo chiến lược tham lam bảo vệ cạnh cây.
 // Cập nhật g: isBuilt = true, isBackup = true, usedPorts +1 hai đầu.
 BackupResult selectBackupLinks(Graph& g, const MSTResult& mst,
                                int k,
                                const CostFn& cost);
 
-// Tổng chi phí lắp đặt của một tập edge
-double sumCablingCost(const Graph& g, const std::vector<int>& edgeIds,
-                      const CostFn& cost);
-
 #endif // KRUSKAL_H
-
-

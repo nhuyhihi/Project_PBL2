@@ -1,2 +1,0 @@
-# Cấu trúc: id name type totalPorts processingTime
-0 BAD ROUTER -1 0.005

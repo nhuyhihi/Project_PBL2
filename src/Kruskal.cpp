@@ -17,7 +17,6 @@ const char* toString(RejectReason r) {
 
 // ------------------------------------------------------------
 // Sắp xếp: rẻ trước; bằng nhau thì id nhỏ trước
-// (hai edge cùng dữ liệu tính cùng công thức nên so sánh bằng chính xác)
 // ------------------------------------------------------------
 bool compareEdges(const Edge& a, const Edge& b, const CostFn& cost) {
     const double ca = cost(a);
@@ -175,10 +174,3 @@ BackupResult selectBackupLinks(Graph& g, const MSTResult& mst, int k, const Cost
     for (int t : mst.edgeIds) if (covered[t]) ++result.protectedTreeEdges;
     return result;
 }
-
-double sumCablingCost(const Graph& g, const std::vector<int>& edgeIds, const CostFn& cost) {
-    double sum = 0.0;
-    for (int id : edgeIds) sum += cost(g.getEdge(id));
-    return sum;
-}
-

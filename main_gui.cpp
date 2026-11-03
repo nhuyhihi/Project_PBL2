@@ -29,8 +29,8 @@
 #include "RoutingCost.h"
 #include "Dijkstra.h"
 #include "PathResult.h"
-#include "Reliability.h"
-#include "Reporter.h"
+#include "Connectivity.h"
+#include "FailureHandler.h"
 #include "Simulator.h"
 #include "Scenario.h"
 #include "Logger.h"
@@ -100,8 +100,7 @@ struct AppState {
     int  selectedDstNode = -1;
 
     int  viewMode = 0; // 0: Vật lý (MST/Backup), 1: Logic (Routing)
-    int  selectedPacketPreset = 0; // 0: Chuẩn 1500B, 1: Pkt#0 (500B RT), 2: Pkt#1 (3000B TCP Frag), 3: Test DF-MTU (3000B DF)
-    int  selectedPacketType = 0;   // 0: REAL_TIME, 1: BULK_DATA, 2: CONTROL
+    int  selectedPacketPreset = 0; // 0: Chuẩn 1500B, 1..N: Các gói trong data/packets.txt, N+1: Test DF-MTU
     bool onlyBuiltLinks = true;    // Định tuyến trên hạ tầng đã xây (MST + Backup)
 
     MSTResult mstResult;
@@ -153,7 +152,6 @@ struct AppState {
         selectedDstNode = -1;
         viewMode = 0;
         selectedPacketPreset = 0;
-        selectedPacketType = 0;
         onlyBuiltLinks = true;
         currentKruskalStep = 0;
         currentScenarioStep = 0;
@@ -172,90 +170,48 @@ struct AppState {
     }
 };
 
-// Tạo cấu hình Packet đồng nhất cho cả 3 vị trí gọi Dijkstra (Pill, Hover Tooltip, Reroute)
-Packet buildCurrentPacket(const AppState& appState, int srcNode, int dstNode) {
+// Tạo cấu hình Packet đồng nhất từ dữ liệu thực trong data/packets.txt (không hard-code thông số)
+Packet buildCurrentPacket(const AppState& appState, const std::vector<Packet>& packets, int srcNode, int dstNode) {
     Packet pkt;
     pkt.id = 999;
     pkt.source = srcNode;
     pkt.destination = dstNode;
 
-    if (appState.selectedPacketPreset == 1) {
-        // Pkt #0 từ data/packets.txt: 500B, UDP, DF=Chặn
-        pkt.id = 0;
-        pkt.sizeBytes = 500;
-        pkt.protocol = Protocol::UDP;
-        pkt.canFragment = false;
-        pkt.newConnection = false;
-    } else if (appState.selectedPacketPreset == 2) {
-        // Pkt #1 từ data/packets.txt: 3000B, TCP, Cho phân mảnh (3 mảnh), Kết nối mới (+RTT)
-        pkt.id = 1;
-        pkt.sizeBytes = 3000;
-        pkt.protocol = Protocol::TCP;
-        pkt.canFragment = true;
-        pkt.newConnection = true;
-    } else if (appState.selectedPacketPreset == 3) {
+    int numFilePresets = static_cast<int>(packets.size());
+    if (appState.selectedPacketPreset >= 1 && appState.selectedPacketPreset <= numFilePresets) {
+        // Lấy trực tiếp cấu hình và loại dịch vụ QoS từ vector<Packet> nạp từ data/packets.txt
+        pkt = packets[appState.selectedPacketPreset - 1];
+        pkt.source = srcNode;
+        pkt.destination = dstNode;
+    } else if (appState.selectedPacketPreset == numFilePresets + 1) {
         // Gói tin kiểm thử chặn DF-MTU: 3000B > MTU 1500B nhưng canFragment = false -> DROP
-        pkt.id = 2;
+        pkt.id = 998;
         pkt.sizeBytes = 3000;
         pkt.protocol = Protocol::TCP;
         pkt.canFragment = false;
         pkt.newConnection = true;
+        pkt.type = PacketType::CONTROL;
     } else {
-        // Gói chuẩn 1500B, UDP, Cho phân mảnh
+        // Gói chuẩn 1500B, UDP, Cho phân mảnh, QoS Real-Time
         pkt.sizeBytes = 1500;
         pkt.protocol = Protocol::UDP;
         pkt.canFragment = true;
         pkt.newConnection = false;
+        pkt.type = PacketType::REAL_TIME;
     }
-
-    if (appState.selectedPacketType == 0) pkt.type = PacketType::REAL_TIME;
-    else if (appState.selectedPacketType == 1) pkt.type = PacketType::BULK_DATA;
-    else pkt.type = PacketType::CONTROL;
 
     return pkt;
 }
 
-// Tìm tập hợp các trạm còn liên thông được với trạm lõi đầu tiên trong mạng
-std::unordered_set<int> getConnectedComponentFromCore(const Graph& g) {
-    std::unordered_set<int> visited;
-    std::vector<int> ids = g.nodeIds();
-    if (ids.empty()) return visited;
-    int rootId = ids.front();
-
-    std::vector<int> q = {rootId};
-    visited.insert(rootId);
-    size_t head = 0;
-    while (head < q.size()) {
-        int u = q[head++];
-        for (int eId : g.getNeighbors(u)) {
-            const auto& e = g.getEdge(eId);
-            if (e.isUp) {
-                int v = g.otherEndpoint(u, eId);
-                if (v != -1 && !visited.count(v)) {
-                    visited.insert(v);
-                    q.push_back(v);
-                }
-            }
-        }
-    }
-    return visited;
-}
-
-// Kiểm tra trạm có bị cô lập hoàn toàn hoặc bị chia cắt khỏi mạng lõi không
+// Kiểm tra trạm có bị cô lập hoàn toàn hoặc bị chia cắt khỏi mạng lõi không (Sử dụng module Connectivity)
 bool isNodeIsolated(const Graph& g, int nId) {
-    bool hasActiveLink = false;
-    for (int eId : g.getNeighbors(nId)) {
-        if (g.getEdge(eId).isUp) {
-            hasActiveLink = true;
-            break;
-        }
-    }
-    if (!hasActiveLink) return true;
-
     std::vector<int> ids = g.nodeIds();
-    if (!ids.empty() && nId == ids.front()) return false;
-    auto reachable = getConnectedComponentFromCore(g);
-    return !reachable.count(nId);
+    if (ids.empty()) return true;
+    if (Connectivity::reachableFrom(g, nId, /*onlyBuilt=*/false).size() <= 1 && g.V() > 1) {
+        return true;
+    }
+    int rootId = ids.front();
+    return !Connectivity::isConnected(g, rootId, nId, /*onlyBuilt=*/false);
 }
 
 // Tính tổng khoảng cách mét thực tế trên đường đi
@@ -287,7 +243,7 @@ std::string formatNodePath(const Graph& g, const std::vector<int>& nodes) {
 }
 
 // ============================================================================
-// HÌNH HỌC & ĐƯỜNG CONG TÁCH CÁP CHÉO (BEZIER ARCS & HITBOX)
+// HÌNH HỌC & ĐƯỜNG CONG TÁCH CÁP CHÉO (BEZIER ARCS & HITBOX AN TOÀN ĐỘNG)
 // ============================================================================
 float distancePointToSegment(const sf::Vector2f& p, const sf::Vector2f& a, const sf::Vector2f& b) {
     const float l2 = (b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y);
@@ -301,14 +257,15 @@ float distancePointToSegment(const sf::Vector2f& p, const sf::Vector2f& a, const
     return std::sqrt(dx * dx + dy * dy);
 }
 
-bool isCurvedDiagonal(int u, int v) {
-    return (u == 1 && v == 3) || (u == 3 && v == 1);
+bool isPairMatch(int u, int v, int a, int b) {
+    if (a == -1 || b == -1) return false;
+    return (u == a && v == b) || (u == b && v == a);
 }
 
-sf::Vector2f getDiagonalCurveControl(const sf::Vector2f& posR2, const sf::Vector2f& posR4) {
-    sf::Vector2f mid = (posR2 + posR4) * 0.5f;
-    float dx = posR4.x - posR2.x;
-    float dy = posR4.y - posR2.y;
+sf::Vector2f getDiagonalCurveControl(const sf::Vector2f& posA, const sf::Vector2f& posB) {
+    sf::Vector2f mid = (posA + posB) * 0.5f;
+    float dx = posB.x - posA.x;
+    float dy = posB.y - posA.y;
     float len = std::sqrt(dx * dx + dy * dy);
     if (len < 1.0f) return mid;
     sf::Vector2f normal(-dy / len, dx / len);
@@ -320,9 +277,9 @@ sf::Vector2f evalQuadraticBezier(const sf::Vector2f& p0, const sf::Vector2f& p1,
     return u * u * p0 + 2.0f * u * t * p1 + t * t * p2;
 }
 
-float getDistanceToEdge(const sf::Vector2f& clickPos, int u, int v, 
+float getDistanceToEdge(const sf::Vector2f& clickPos, bool isCurved,
                         const sf::Vector2f& p1, const sf::Vector2f& p2, const sf::Vector2f& ctrl) {
-    if (isCurvedDiagonal(u, v)) {
+    if (isCurved) {
         constexpr int SEGS = 16;
         float minDist = 99999.0f;
         sf::Vector2f prev = p1;
@@ -525,9 +482,9 @@ void recordKruskalSteps(Graph& g, const CostModel& pricingModel, AppState& appSt
 }
 
 // ============================================================================
-// CẬP NHẬT ĐỊNH TUYẾN DIJKSTRA VỚI GÓI TIN HIỆN TẠI (KHÔNG GÂY SIDE-EFFECT)
+// CẬP NHẬT ĐỊNH TUYẾN DIJKSTRA VỚI GÓI TIN HIỆN TẠI (READ-ONLY QUA EVALUATEPACKET)
 // ============================================================================
-void updateRoutingPath(const Graph& g, AppState& appState) {
+void updateRoutingPath(const Graph& g, const std::vector<Packet>& packets, AppState& appState) {
     if (appState.selectedSrcNode == -1 || appState.selectedDstNode == -1 || appState.selectedSrcNode == appState.selectedDstNode) {
         appState.currentPath = PathResult();
         appState.hasRoutingInfo = false;
@@ -535,14 +492,13 @@ void updateRoutingPath(const Graph& g, AppState& appState) {
         return;
     }
 
-    Packet qosPkt = buildCurrentPacket(appState, appState.selectedSrcNode, appState.selectedDstNode);
+    Packet qosPkt = buildCurrentPacket(appState, packets, appState.selectedSrcNode, appState.selectedDstNode);
 
     // Chạy Dijkstra với onlyBuiltLinks (mặc định true: chỉ đi trên cáp đã lắp đặt MST + Backup)
     appState.currentPath = dijkstra(g, appState.selectedSrcNode, appState.selectedDstNode, qosPkt, appState.onlyBuiltLinks);
 
-    // Dùng bản sao simCopy để tính độ trễ mà KHÔNG làm biến đổi ngầm currentLoad của workingGraph
-    Graph simCopy = g;
-    appState.logicSimResult = Simulator::sendPacket(qosPkt, appState.currentPath, simCopy);
+    // Sử dụng Simulator::evaluatePacket (Read-Only, không cần copy Graph hay làm bẩn currentLoad)
+    appState.logicSimResult = Simulator::evaluatePacket(qosPkt, appState.currentPath, g);
     appState.hasRoutingInfo = true;
 
     // Kiểm tra xem lộ trình có vừa tự động đổi hướng (Reroute) trên cùng cặp (Src, Dst) không
@@ -592,7 +548,7 @@ void updateRoutingPath(const Graph& g, AppState& appState) {
 }
 
 void applyScenarioToStep(Graph& workingGraph, const Graph& baseGraph, const CostModel& pricingModel,
-                         const Scenario& scenario, int targetStep, AppState& appState) {
+                         const std::vector<Packet>& packets, const Scenario& scenario, int targetStep, AppState& appState) {
     // Khôi phục từ baseGraph (đã có sẵn cờ isBuilt & isBackup của quy hoạch hạ tầng ban đầu)
     workingGraph = baseGraph;
     if (targetStep >= 0 && targetStep < static_cast<int>(scenario.events.size())) {
@@ -609,7 +565,7 @@ void applyScenarioToStep(Graph& workingGraph, const Graph& baseGraph, const Cost
         appState.currentKruskalStep = static_cast<int>(appState.kruskalHistory.size());
     }
     // Tự động cập nhật ngay lập tức lộ trình và độ trễ ở Lớp Logic
-    updateRoutingPath(workingGraph, appState);
+    updateRoutingPath(workingGraph, packets, appState);
 }
 
 // ============================================================================
@@ -637,7 +593,7 @@ int main() {
     pricingModel.loadPricing("data/pricing.txt");
     auto costFn = [&pricingModel](const Edge& e) { return pricingModel.calculateCablingCost(e).total; };
 
-    // Thực hiện Bước 3 & Bước 4 trong Kiến trúc 11 bước trên baseGraph
+    // Xây dựng cây khung MST và cáp dự phòng trên baseGraph
     MSTResult initialMST = buildMST(baseGraph, costFn);
     selectBackupLinks(baseGraph, initialMST, DEFAULT_BACKUP_LINKS, costFn);
 
@@ -659,12 +615,19 @@ int main() {
         nodeLabels.push_back(n.empty() ? ("Node " + std::to_string(id)) : n);
     }
 
-    const std::vector<std::string> packetPresetLabels = {
-        "Chuẩn 1500B (UDP, Cho phân mảnh)",
-        "Pkt #0 [packets.txt]: 500B | REAL_TIME | UDP | DF=Chặn",
-        "Pkt #1 [packets.txt]: 3000B | BULK_DATA | TCP (3 mảnh + RTT)",
-        "Test Chặn MTU: 3000B | CONTROL | TCP | DF=Chặn (Rớt gói)"
-    };
+    // Tạo danh sách mẫu gói tin động từ vector<Packet> nạp từ data/packets.txt
+    std::vector<std::string> packetPresetLabels;
+    packetPresetLabels.push_back("Chuẩn 1500B (UDP, Cho phân mảnh)");
+    for (const Packet& p : packets) {
+        std::string tStr = EnumUtils::toString(p.type);
+        std::string prStr = EnumUtils::toString(p.protocol);
+        std::string dfStr = p.canFragment ? "Cho băm" : "DF=Chặn";
+        packetPresetLabels.push_back(
+            "Pkt #" + std::to_string(p.id) + " [packets.txt]: " +
+            std::to_string(p.sizeBytes) + "B | " + tStr + " | " + prStr + " | " + dfStr
+        );
+    }
+    packetPresetLabels.push_back("Test Chặn MTU: 3000B | CONTROL | TCP | DF=Chặn (Rớt gói)");
 
     // ------------------------------------------------------------------------
     // 2. KHỞI TẠO CỬA SỔ SFML & IMGUI-SFML
@@ -726,11 +689,18 @@ int main() {
     }
 
     // ------------------------------------------------------------------------
-    // BỐ TRÍ TỌA ĐỘ MẠNG 2 TẦNG
+    // BỐ TRÍ TỌA ĐỘ MẠNG 2 TẦNG & NHẬN DIỆN ĐƯỜNG CHÉO AN TOÀN ĐỘNG
     // ------------------------------------------------------------------------
     std::unordered_map<int, sf::Vector2f> nodePositions;
+    int curvedDiagU = -1, curvedDiagV = -1;
+    int straightDiagU = -1, straightDiagV = -1;
+    sf::Vector2f diagCtrl(SAFE_CENTER_X, SAFE_CENTER_Y);
+
     auto recomputeLayout = [&]() {
         nodePositions.clear();
+        curvedDiagU = curvedDiagV = -1;
+        straightDiagU = straightDiagV = -1;
+
         std::vector<int> routerIds;
         std::vector<int> hostIds;
 
@@ -751,6 +721,15 @@ int main() {
             );
         }
 
+        // Nếu có từ 4 Router trở lên, tự động tách đường chéo thứ 2 (routerIds[1] - routerIds[3]) thành cung Bezier
+        if (numRouters >= 4) {
+            straightDiagU = routerIds[0];
+            straightDiagV = routerIds[2];
+            curvedDiagU   = routerIds[1];
+            curvedDiagV   = routerIds[3];
+            diagCtrl = getDiagonalCurveControl(nodePositions.at(curvedDiagU), nodePositions.at(curvedDiagV));
+        }
+
         for (int hId : hostIds) {
             int connectedRouter = -1;
             for (int eId : workingGraph.getNeighbors(hId)) {
@@ -762,7 +741,7 @@ int main() {
             }
 
             if (connectedRouter != -1 && nodePositions.count(connectedRouter)) {
-                sf::Vector2f rPos = nodePositions[connectedRouter];
+                sf::Vector2f rPos = nodePositions.at(connectedRouter);
                 float dirX = rPos.x - SAFE_CENTER_X;
                 float dirY = rPos.y - SAFE_CENTER_Y;
                 float len = std::sqrt(dirX * dirX + dirY * dirY);
@@ -776,8 +755,6 @@ int main() {
         }
     };
     recomputeLayout();
-
-    sf::Vector2f r2r4Ctrl = getDiagonalCurveControl(nodePositions[1], nodePositions[3]);
 
     // ------------------------------------------------------------------------
     // 3. GAME LOOP TUẦN TỰ (60 FPS)
@@ -806,7 +783,8 @@ int main() {
                         for (int eId : workingGraph.edgeIds()) {
                             const Edge& e = workingGraph.getEdge(eId);
                             if (nodePositions.count(e.u) && nodePositions.count(e.v)) {
-                                float d = getDistanceToEdge(clickPos, e.u, e.v, nodePositions[e.u], nodePositions[e.v], r2r4Ctrl);
+                                bool curved = isPairMatch(e.u, e.v, curvedDiagU, curvedDiagV);
+                                float d = getDistanceToEdge(clickPos, curved, nodePositions.at(e.u), nodePositions.at(e.v), diagCtrl);
                                 if (d <= CUT_HITBOX_TOLERANCE && d < minDist) {
                                     minDist = d;
                                     cutEdgeId = eId;
@@ -816,7 +794,7 @@ int main() {
 
                         if (cutEdgeId != -1) {
                             Edge& edge = workingGraph.getEdge(cutEdgeId);
-                            edge.isUp = !edge.isUp; // Đảo trạng thái đứt / nối lại
+                            FailureHandler::setLinkState(workingGraph, cutEdgeId, !edge.isUp); // Đảo trạng thái đứt / nối lại qua FailureHandler
                             
                             std::string uName = workingGraph.getNode(edge.u).name.empty() ? std::to_string(edge.u) : workingGraph.getNode(edge.u).name;
                             std::string vName = workingGraph.getNode(edge.v).name.empty() ? std::to_string(edge.v) : workingGraph.getNode(edge.v).name;
@@ -826,7 +804,7 @@ int main() {
                             if (appState.isMSTActive) {
                                 appState.currentKruskalStep = static_cast<int>(appState.kruskalHistory.size());
                             }
-                            updateRoutingPath(workingGraph, appState);
+                            updateRoutingPath(workingGraph, packets, appState);
 
                             appState.statusMessage = (edge.isUp ? "Đã phục hồi liên kết #" : "Đã cắt đứt liên kết #") +
                                                      std::to_string(cutEdgeId) + " (" + uName + " - " + vName + ").";
@@ -850,7 +828,7 @@ int main() {
                                 if (hit) {
                                     appState.selectedSrcNode = nId;
                                     if (appState.selectedDstNode == nId) appState.selectedDstNode = -1;
-                                    updateRoutingPath(workingGraph, appState);
+                                    updateRoutingPath(workingGraph, packets, appState);
                                     break;
                                 }
                             }
@@ -869,7 +847,7 @@ int main() {
                                 if (hit) {
                                     if (appState.selectedSrcNode != nId) {
                                         appState.selectedDstNode = nId;
-                                        updateRoutingPath(workingGraph, appState);
+                                        updateRoutingPath(workingGraph, packets, appState);
 
                                         if (appState.currentPath.reachable && appState.currentPath.nodes.size() >= 2) {
                                             PacketAnim p;
@@ -902,6 +880,36 @@ int main() {
 
         for (auto& pkt : appState.activePackets) {
             if (pkt.isDelivered || pkt.isBlocked) continue;
+
+            // Kiểm tra tức thì nếu sợi cáp gói tin ĐANG BAY TRÊN ĐÓ vừa bị cắt đứt giữa chừng
+            if (pkt.currentHopIndex < static_cast<int>(pkt.path.size()) - 1) {
+                int curU = pkt.path[pkt.currentHopIndex];
+                int curV = pkt.path[pkt.currentHopIndex + 1];
+                bool currentHopDown = false;
+                for (int eId : workingGraph.getNeighbors(curU)) {
+                    const Edge& e = workingGraph.getEdge(eId);
+                    if (workingGraph.otherEndpoint(curU, eId) == curV && !e.isUp) {
+                        currentHopDown = true;
+                        break;
+                    }
+                }
+                if (currentHopDown) {
+                    Packet reroutePkt = buildCurrentPacket(appState, packets, curU, pkt.destNode);
+                    PathResult newPath = dijkstra(workingGraph, curU, pkt.destNode, reroutePkt, appState.onlyBuiltLinks);
+                    if (newPath.reachable) {
+                        pkt.path = newPath.nodes;
+                        pkt.currentHopIndex = 0;
+                        pkt.progress = 0.0f;
+                        std::string uName = workingGraph.getNode(curU).name.empty() ? std::to_string(curU) : workingGraph.getNode(curU).name;
+                        appState.statusMessage = "Cáp đang truyền bị cắt! Gói tin tự động thu hồi về " + uName + " và chuyển hướng (Reroute)!";
+                    } else {
+                        pkt.isBlocked = true;
+                        appState.statusMessage = "DROP: Cáp đang truyền bị cắt đứt và không còn đường thay thế (Unreachable)!";
+                        continue;
+                    }
+                }
+            }
+
             pkt.progress += pkt.speed * dt;
             if (pkt.progress >= 1.0f) {
                 pkt.progress = 0.0f;
@@ -922,8 +930,7 @@ int main() {
                         }
                     }
                     if (linkBroken) {
-                        // Đồng bộ hàm trọng số QoS và cờ onlyBuiltLinks khi gói tin đang bay phải Reroute
-                        Packet reroutePkt = buildCurrentPacket(appState, u, pkt.destNode);
+                        Packet reroutePkt = buildCurrentPacket(appState, packets, u, pkt.destNode);
                         PathResult newPath = dijkstra(workingGraph, u, pkt.destNode, reroutePkt, appState.onlyBuiltLinks);
                         if (newPath.reachable) {
                             pkt.path = newPath.nodes;
@@ -966,7 +973,8 @@ int main() {
                 for (int eId : workingGraph.edgeIds()) {
                     const Edge& e = workingGraph.getEdge(eId);
                     if (nodePositions.count(e.u) && nodePositions.count(e.v)) {
-                        float d = getDistanceToEdge(mousePos, e.u, e.v, nodePositions[e.u], nodePositions[e.v], r2r4Ctrl);
+                        bool curved = isPairMatch(e.u, e.v, curvedDiagU, curvedDiagV);
+                        float d = getDistanceToEdge(mousePos, curved, nodePositions.at(e.u), nodePositions.at(e.v), diagCtrl);
                         if (d < minCutDist) {
                             minCutDist = d;
                             hoveredEdgeId = eId;
@@ -1029,7 +1037,7 @@ int main() {
                     appState.sidebarMode = 1;
                     appState.switchTabRequested = true;
                     appState.requestedTab = 1;
-                    applyScenarioToStep(workingGraph, baseGraph, pricingModel, appState.loadedScenario, appState.currentScenarioStep, appState);
+                    applyScenarioToStep(workingGraph, baseGraph, pricingModel, packets, appState.loadedScenario, appState.currentScenarioStep, appState);
                     appState.statusMessage = "Chế độ Kịch Bản: Đang kích hoạt " + appState.scenarioNames[appState.activeScenarioIdx];
                 }
             }
@@ -1039,7 +1047,7 @@ int main() {
                 if (ImGui::Button("<")) {
                     if (appState.currentScenarioStep > 0) {
                         appState.currentScenarioStep--;
-                        applyScenarioToStep(workingGraph, baseGraph, pricingModel, appState.loadedScenario, appState.currentScenarioStep, appState);
+                        applyScenarioToStep(workingGraph, baseGraph, pricingModel, packets, appState.loadedScenario, appState.currentScenarioStep, appState);
                     }
                 }
                 ImGui::SameLine(0, 4.0f);
@@ -1050,7 +1058,7 @@ int main() {
                 if (ImGui::Button(">")) {
                     if (appState.currentScenarioStep < appState.maxScenarioSteps - 1) {
                         appState.currentScenarioStep++;
-                        applyScenarioToStep(workingGraph, baseGraph, pricingModel, appState.loadedScenario, appState.currentScenarioStep, appState);
+                        applyScenarioToStep(workingGraph, baseGraph, pricingModel, packets, appState.loadedScenario, appState.currentScenarioStep, appState);
                     }
                 }
             }
@@ -1098,8 +1106,9 @@ int main() {
         // THẺ NỔI ĐỊNH TUYẾN DẠNG PILL (CHẾ ĐỘ LỚP LOGIC - ROUTING CARD)
         // ====================================================================
         if (appState.viewMode == 1) {
+            float pillWidth = appState.isSidebarOpen ? (WINDOW_WIDTH - DRAWER_DEFAULT_WIDTH - 24.0f) : 855.0f;
             ImGui::SetNextWindowPos(ImVec2(16.0f, TOP_BAR_HEIGHT + 6.0f), ImGuiCond_Always);
-            ImGui::SetNextWindowSize(ImVec2(855.0f, 66.0f), ImGuiCond_Always);
+            ImGui::SetNextWindowSize(ImVec2(pillWidth, 66.0f), ImGuiCond_Always);
             ImGuiWindowFlags pillFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                                          ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
                                          ImGuiWindowFlags_NoSavedSettings;
@@ -1127,7 +1136,7 @@ int main() {
                 }, &nodeLabels, static_cast<int>(nodeLabels.size()))) {
                     appState.selectedSrcNode = allNodeIds[curSrcIdx];
                     if (appState.selectedDstNode == appState.selectedSrcNode) appState.selectedDstNode = -1;
-                    updateRoutingPath(workingGraph, appState);
+                    updateRoutingPath(workingGraph, packets, appState);
                 }
 
                 ImGui::SameLine(0, 6.0f);
@@ -1145,7 +1154,7 @@ int main() {
                         bool isSel = (curDstIdx == i);
                         if (ImGui::Selectable(nodeLabels[i].c_str(), isSel)) {
                             appState.selectedDstNode = allNodeIds[i];
-                            updateRoutingPath(workingGraph, appState);
+                            updateRoutingPath(workingGraph, packets, appState);
                         }
                     }
                     ImGui::EndCombo();
@@ -1154,38 +1163,29 @@ int main() {
                 ImGui::SameLine(0, 8.0f);
                 ImGui::Text("Gói:");
                 ImGui::SameLine(0, 3.0f);
-                ImGui::SetNextItemWidth(195.0f);
+                ImGui::SetNextItemWidth(210.0f);
                 if (ImGui::BeginCombo("##PktPresetCombo", packetPresetLabels[appState.selectedPacketPreset].c_str())) {
                     for (int i = 0; i < static_cast<int>(packetPresetLabels.size()); ++i) {
                         bool isSel = (appState.selectedPacketPreset == i);
                         if (ImGui::Selectable(packetPresetLabels[i].c_str(), isSel)) {
                             appState.selectedPacketPreset = i;
-                            // Tự động đồng bộ loại QoS tương ứng với gói tin trong packets.txt
-                            if (i == 1) appState.selectedPacketType = 0;      // REAL_TIME
-                            else if (i == 2) appState.selectedPacketType = 1; // BULK_DATA
-                            else if (i == 3) appState.selectedPacketType = 2; // CONTROL
-                            updateRoutingPath(workingGraph, appState);
+                            updateRoutingPath(workingGraph, packets, appState);
                         }
                     }
                     ImGui::EndCombo();
                 }
 
-                ImGui::SameLine(0, 8.0f);
-                ImGui::Text("QoS:");
-                ImGui::SameLine(0, 3.0f);
-
-                int prevQoS = appState.selectedPacketType;
-                ImGui::RadioButton("REAL_TIME", &appState.selectedPacketType, 0);
-                ImGui::SameLine(0, 4.0f);
-                ImGui::RadioButton("BULK", &appState.selectedPacketType, 1);
-                ImGui::SameLine(0, 4.0f);
-                ImGui::RadioButton("CONTROL", &appState.selectedPacketType, 2);
-
-                if (prevQoS != appState.selectedPacketType) {
-                    updateRoutingPath(workingGraph, appState);
+                Packet curPkt = buildCurrentPacket(appState, packets, appState.selectedSrcNode, appState.selectedDstNode);
+                ImGui::SameLine(0, 10.0f);
+                if (curPkt.type == PacketType::REAL_TIME) {
+                    ImGui::TextColored(ImVec4(0.15f, 0.65f, 0.25f, 1.0f), "[QoS: REAL_TIME]");
+                } else if (curPkt.type == PacketType::BULK_DATA) {
+                    ImGui::TextColored(ImVec4(0.15f, 0.45f, 0.85f, 1.0f), "[QoS: BULK_DATA]");
+                } else {
+                    ImGui::TextColored(ImVec4(0.45f, 0.50f, 0.55f, 1.0f), "[QoS: CONTROL]");
                 }
 
-                ImGui::SameLine(0, 8.0f);
+                ImGui::SameLine(0, 10.0f);
                 if (appState.currentPath.reachable && appState.currentPath.nodes.size() >= 2) {
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.62f, 0.28f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -1208,7 +1208,7 @@ int main() {
                 // HÀNG 2: KẾT QUẢ ĐỊNH TUYẾN, ĐỘ TRỄ, PHÂN MẢNH MTU, TCP HANDSHAKE & REROUTE
                 std::string sN = workingGraph.getNode(appState.selectedSrcNode).name;
                 std::string dN = (appState.selectedDstNode != -1) ? workingGraph.getNode(appState.selectedDstNode).name : "";
-                Packet activePkt = buildCurrentPacket(appState, appState.selectedSrcNode, appState.selectedDstNode);
+                Packet activePkt = buildCurrentPacket(appState, packets, appState.selectedSrcNode, appState.selectedDstNode);
 
                 if (appState.selectedDstNode == -1) {
                     ImGui::TextColored(ImVec4(0.45f, 0.50f, 0.55f, 1.0f),
@@ -1231,15 +1231,6 @@ int main() {
                         ImGui::SameLine(0, 8.0f);
                         ImGui::TextColored(ImVec4(0.88f, 0.35f, 0.08f, 1.0f),
                             "[REROUTE từ %s]", appState.previousRouteStr.c_str());
-                    } else {
-                        ImGui::SameLine(0, 8.0f);
-                        if (appState.selectedPacketType == 0) {
-                            ImGui::TextColored(ImVec4(0.85f, 0.45f, 0.1f, 1.0f), "[REAL_TIME: Né trễ hàng đợi wQ=4]");
-                        } else if (appState.selectedPacketType == 1) {
-                            ImGui::TextColored(ImVec4(0.15f, 0.45f, 0.85f, 1.0f), "[BULK: Ưu tiên cáp 10Gbps wT=2]");
-                        } else {
-                            ImGui::TextColored(ImVec4(0.4f, 0.45f, 0.5f, 1.0f), "[CONTROL: Trọng số cân bằng 1:1:1]");
-                        }
                     }
                 } else {
                     if (activePkt.sizeBytes > 1500 && !activePkt.canFragment) {
@@ -1269,7 +1260,7 @@ int main() {
             ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(1.0f, 1.0f, 1.0f, 0.98f));
             if (ImGui::Begin("Bảng Dữ Liệu##Sidebar", &appState.isSidebarOpen, drawerFlags)) {
                 if (ImGui::BeginTabBar("SidebarTabs")) {
-                    // TAB 1: KRUSKAL STEP-BY-STEP, NGÂN SÁCH (TASK B2.4) & PHÂN TÍCH DỰ PHÒNG (RELIABILITY B5.2)
+                    // TAB 1: QUY HOẠCH CÁP (MST) & SO SÁNH 3 MỨC NGÂN SÁCH
                     ImGuiTabItemFlags tab1Flags = 0;
                     if (appState.switchTabRequested && appState.requestedTab == 0) {
                         tab1Flags |= ImGuiTabItemFlags_SetSelected;
@@ -1279,7 +1270,7 @@ int main() {
                         appState.isMSTActive = true;
                         appState.isScenarioActive = false;
 
-                        // 1. BẢNG SO SÁNH 3 MỨC NGÂN SÁCH (TASK B2.4)
+                        // 1. BẢNG SO SÁNH 3 MỨC NGÂN SÁCH
                         double costAll = 0.0;
                         for (int eId : baseGraph.edgeIds()) {
                             costAll += costFn(baseGraph.getEdge(eId));
@@ -1291,7 +1282,7 @@ int main() {
                         double savedPct = (costAll > 0.0 && !std::isinf(costAll) && !std::isinf(costMST)) ? ((costAll - costMST) / costAll * 100.0) : 0.0;
 
                         ImGui::Spacing();
-                        ImGui::TextColored(ImVec4(0.12f, 0.46f, 0.85f, 1.0f), "SO SÁNH 3 MỨC NGÂN SÁCH (TASK B2.4):");
+                        ImGui::TextColored(ImVec4(0.12f, 0.46f, 0.85f, 1.0f), "SO SÁNH 3 MỨC NGÂN SÁCH:");
                         if (ImGui::BeginTable("BudgetCompare", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
                             ImGui::TableSetupColumn("Phương Án");
                             ImGui::TableSetupColumn("Chi Phí");
@@ -1358,48 +1349,7 @@ int main() {
                             ImGui::TextColored(ImVec4(0.85f, 0.2f, 0.2f, 1.0f), "[! CẢNH BÁO] Đồ thị bị chia cắt! Không thể tạo MST.");
                         }
 
-                        // 2. PHÂN TÍCH ĐỘ TIN CẬY & CÁP DỰ PHÒNG (MODULE RELIABILITY - TASK B5.2)
-                        ImGui::Spacing();
-                        if (ImGui::CollapsingHeader("Phân Tích Cáp Dự Phòng (Task B5.2)", ImGuiTreeNodeFlags_DefaultOpen)) {
-                            if (ImGui::BeginTable("ReliabilityTable", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
-                                ImGui::TableSetupColumn("Cạnh MST", ImGuiTableColumnFlags_WidthFixed, 105.0f);
-                                ImGui::TableSetupColumn("Phương Án Cứu Hộ Khi Đứt");
-                                ImGui::TableHeadersRow();
-
-                                for (int tEdgeId : appState.mstResult.edgeIds) {
-                                    const Edge& te = workingGraph.getEdge(tEdgeId);
-                                    std::string uN = workingGraph.getNode(te.u).name;
-                                    std::string vN = workingGraph.getNode(te.v).name;
-
-                                    BackupCandidate cand = Reliability::findBackupForTreeEdge(
-                                        workingGraph, appState.mstResult.edgeIds, tEdgeId, costFn
-                                    );
-
-                                    ImGui::TableNextRow();
-                                    ImGui::TableSetColumnIndex(0);
-                                    ImGui::Text("#%d (%s-%s)", tEdgeId, uN.c_str(), vN.c_str());
-
-                                    ImGui::TableSetColumnIndex(1);
-                                    if (cand.backupEdgeId != -1) {
-                                        const Edge& be = workingGraph.getEdge(cand.backupEdgeId);
-                                        std::string bu = workingGraph.getNode(be.u).name;
-                                        std::string bv = workingGraph.getNode(be.v).name;
-                                        if (be.isBackup) {
-                                            ImGui::TextColored(ImVec4(0.15f, 0.45f, 0.95f, 1.0f),
-                                                "Backup #%d (%s-%s, %.0f ĐV)", cand.backupEdgeId, bu.c_str(), bv.c_str(), cand.cost);
-                                        } else {
-                                            ImGui::TextColored(ImVec4(0.45f, 0.50f, 0.55f, 1.0f),
-                                                "Ứng viên #%d (%s-%s, %.0f ĐV)", cand.backupEdgeId, bu.c_str(), bv.c_str(), cand.cost);
-                                        }
-                                    } else {
-                                        ImGui::TextColored(ImVec4(0.85f, 0.25f, 0.25f, 1.0f), "Cạnh cầu (Critical Bridge)");
-                                    }
-                                }
-                                ImGui::EndTable();
-                            }
-                        }
-
-                        // 3. THUẬT TOÁN KRUSKAL TỪNG BƯỚC
+                        // 2. THUẬT TOÁN KRUSKAL TỪNG BƯỚC
                         ImGui::Spacing();
                         ImGui::Separator();
                         ImGui::TextColored(ImVec4(0.12f, 0.46f, 0.85f, 1.0f), "Thuật toán Kruskal Từng Bước:");
@@ -1419,7 +1369,7 @@ int main() {
 
                         ImGui::Separator();
                         ImGui::TextColored(ImVec4(0.2f, 0.4f, 0.7f, 1.0f), "Lịch sử duyệt cạnh:");
-                        if (ImGui::BeginChild("KruskalLogList", ImVec2(0, 175), true)) {
+                        if (ImGui::BeginChild("KruskalLogList", ImVec2(0, 250), true)) {
                             for (int i = 0; i < appState.currentKruskalStep; ++i) {
                                 const auto& st = appState.kruskalHistory[i];
                                 if (st.isSelected) {
@@ -1461,12 +1411,11 @@ int main() {
                                     IOManager::loadScenario("data/scenarios/" + appState.scenarioFiles[i], appState.loadedScenario);
                                     appState.maxScenarioSteps = static_cast<int>(appState.loadedScenario.events.size());
                                     appState.currentScenarioStep = 0;
-                                    // Khi chọn kịch bản, tự động đặt cặp Nguồn R1 (0) -> Đích R4 (3) để thấy ngay kết quả
-                                    if (appState.selectedDstNode == -1 && workingGraph.hasNode(0) && workingGraph.hasNode(3)) {
-                                        appState.selectedSrcNode = 0;
-                                        appState.selectedDstNode = 3;
+                                    if (appState.selectedDstNode == -1 && !packets.empty()) {
+                                        appState.selectedSrcNode = packets.front().source;
+                                        appState.selectedDstNode = packets.front().destination;
                                     }
-                                    applyScenarioToStep(workingGraph, baseGraph, pricingModel, appState.loadedScenario, 0, appState);
+                                    applyScenarioToStep(workingGraph, baseGraph, pricingModel, packets, appState.loadedScenario, 0, appState);
                                     appState.statusMessage = "Đã nạp kịch bản: " + appState.scenarioNames[i];
                                 }
                             }
@@ -1477,17 +1426,17 @@ int main() {
                         ImGui::Text("Tiến trình: Bước %d / %d", appState.maxScenarioSteps == 0 ? 0 : appState.currentScenarioStep + 1, appState.maxScenarioSteps);
                         if (ImGui::Button(" [<< Lùi bước] ") && appState.currentScenarioStep > 0) {
                             appState.currentScenarioStep--;
-                            applyScenarioToStep(workingGraph, baseGraph, pricingModel, appState.loadedScenario, appState.currentScenarioStep, appState);
+                            applyScenarioToStep(workingGraph, baseGraph, pricingModel, packets, appState.loadedScenario, appState.currentScenarioStep, appState);
                         }
                         ImGui::SameLine();
                         if (ImGui::Button(" [Tiến bước >>] ") && appState.currentScenarioStep < appState.maxScenarioSteps - 1) {
                             appState.currentScenarioStep++;
-                            applyScenarioToStep(workingGraph, baseGraph, pricingModel, appState.loadedScenario, appState.currentScenarioStep, appState);
+                            applyScenarioToStep(workingGraph, baseGraph, pricingModel, packets, appState.loadedScenario, appState.currentScenarioStep, appState);
                         }
                         ImGui::SameLine();
                         if (ImGui::Button(" [Chạy từ đầu] ")) {
                             appState.currentScenarioStep = 0;
-                            applyScenarioToStep(workingGraph, baseGraph, pricingModel, appState.loadedScenario, appState.currentScenarioStep, appState);
+                            applyScenarioToStep(workingGraph, baseGraph, pricingModel, packets, appState.loadedScenario, appState.currentScenarioStep, appState);
                         }
 
                         ImGui::Separator();
@@ -1524,7 +1473,7 @@ int main() {
                                 }
                                 if (ImGui::Selectable(labelBuf, isCurrent)) {
                                     appState.currentScenarioStep = i;
-                                    applyScenarioToStep(workingGraph, baseGraph, pricingModel, appState.loadedScenario, appState.currentScenarioStep, appState);
+                                    applyScenarioToStep(workingGraph, baseGraph, pricingModel, packets, appState.loadedScenario, appState.currentScenarioStep, appState);
                                 }
                                 if (isCurrent) {
                                     ImGui::PopStyleColor();
@@ -1533,7 +1482,7 @@ int main() {
                         }
                         ImGui::EndChild();
 
-                        // BẢNG KẾT QUẢ TRUYỀN CÁC GÓI TIN TRONG PACKETS.TXT TẠI BƯỚC HIỆN TẠI
+                        // BẢNG KẾT QUẢ TRUYỀN CÁC GÓI TIN TRONG PACKETS.TXT TẠI BƯỚC HIỆN TẠI (READ-ONLY)
                         ImGui::Spacing();
                         ImGui::TextColored(ImVec4(0.12f, 0.46f, 0.85f, 1.0f), "Kết quả truyền gói tin (data/packets.txt):");
                         if (ImGui::BeginTable("ScenarioPacketsTable", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
@@ -1543,10 +1492,9 @@ int main() {
                             ImGui::TableSetupColumn("Trễ / TT", ImGuiTableColumnFlags_WidthFixed, 78.0f);
                             ImGui::TableHeadersRow();
 
-                            Graph snapG = workingGraph;
                             for (const Packet& pkt : packets) {
-                                PathResult pRes = dijkstra(snapG, pkt.source, pkt.destination, pkt, /*onlyBuilt=*/true);
-                                SimulationResult sRes = Simulator::sendPacket(pkt, pRes, snapG);
+                                PathResult pRes = dijkstra(workingGraph, pkt.source, pkt.destination, pkt, /*onlyBuilt=*/true);
+                                SimulationResult sRes = Simulator::evaluatePacket(pkt, pRes, workingGraph);
 
                                 ImGui::TableNextRow();
                                 ImGui::TableSetColumnIndex(0);
@@ -1574,7 +1522,7 @@ int main() {
                             ImGui::EndTable();
                         }
 
-                        // NÚT XUẤT FILE LOG (.TXT) SỬ DỤNG MODULE LOGGER (TASK B6.5)
+                        // NÚT XUẤT FILE LOG (.TXT) SỬ DỤNG MODULE LOGGER
                         ImGui::Spacing();
                         if (ImGui::Button(" [Xuất Nhật Ký Kịch Bản Ra File Log (.txt)] ", ImVec2(-1.0f, 0.0f))) {
                             std::filesystem::create_directories("data/logs");
@@ -1596,17 +1544,17 @@ int main() {
         }
 
         // ====================================================================
-        // MODULE 2: NATIVE HOVER TOOLTIP (ĐỒNG BỘ 100% HÀM TRỌNG SỐ QOS & ONLYBUILT)
+        // MODULE 2: NATIVE HOVER TOOLTIP (READ-ONLY QUA SIMULATOR::EVALUATEPACKET)
         // ====================================================================
         if (appState.hoveredNodeId != -1 && !ImGui::GetIO().WantCaptureMouse) {
             std::string hName = workingGraph.getNode(appState.hoveredNodeId).name;
             if (hName.empty()) hName = "Node " + std::to_string(appState.hoveredNodeId);
 
-            const char* qosModeStr = (appState.selectedPacketType == 0) ? "REAL_TIME" :
-                                     (appState.selectedPacketType == 1) ? "BULK_DATA" : "CONTROL";
+            Packet samplePkt = buildCurrentPacket(appState, packets, appState.hoveredNodeId, appState.hoveredNodeId);
+            std::string qosModeStr = EnumUtils::toString(samplePkt.type);
 
             ImGui::BeginTooltip();
-            ImGui::TextColored(ImVec4(0.12f, 0.46f, 0.85f, 1.0f), "BẢNG ĐỊNH TUYẾN - %s (QoS: %s)", hName.c_str(), qosModeStr);
+            ImGui::TextColored(ImVec4(0.12f, 0.46f, 0.85f, 1.0f), "BẢNG ĐỊNH TUYẾN - %s (QoS: %s)", hName.c_str(), qosModeStr.c_str());
             ImGui::Separator();
             if (ImGui::BeginTable("RoutingHover", 4, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg)) {
                 ImGui::TableSetupColumn("Đích");
@@ -1617,7 +1565,7 @@ int main() {
 
                 for (int destId : workingGraph.nodeIds()) {
                     if (destId == appState.hoveredNodeId) continue;
-                    Packet hoverPkt = buildCurrentPacket(appState, appState.hoveredNodeId, destId);
+                    Packet hoverPkt = buildCurrentPacket(appState, packets, appState.hoveredNodeId, destId);
                     PathResult res = dijkstra(workingGraph, appState.hoveredNodeId, destId, hoverPkt, appState.onlyBuiltLinks);
 
                     std::string dName = workingGraph.getNode(destId).name;
@@ -1645,8 +1593,7 @@ int main() {
 
                     ImGui::TableSetColumnIndex(3);
                     if (res.reachable) {
-                        Graph hoverSimG = workingGraph;
-                        SimulationResult hSim = Simulator::sendPacket(hoverPkt, res, hoverSimG);
+                        SimulationResult hSim = Simulator::evaluatePacket(hoverPkt, res, workingGraph);
                         ImGui::Text("%.3f ms", hSim.totalDelay * 1000.0);
                     } else {
                         ImGui::TextColored(ImVec4(0.85f, 0.2f, 0.2f, 1.0f), "INF");
@@ -1700,8 +1647,8 @@ int main() {
             const Edge& edge = workingGraph.getEdge(eId);
             if (!nodePositions.count(edge.u) || !nodePositions.count(edge.v)) continue;
 
-            sf::Vector2f p1 = nodePositions[edge.u];
-            sf::Vector2f p2 = nodePositions[edge.v];
+            sf::Vector2f p1 = nodePositions.at(edge.u);
+            sf::Vector2f p2 = nodePositions.at(edge.v);
 
             bool inRoutingPath = false;
             if (appState.currentPath.reachable && appState.currentPath.edges.size() >= 1) {
@@ -1762,11 +1709,9 @@ int main() {
             } else {
                 // SƠ ĐỒ BAN ĐẦU HOẶC CHẾ ĐỘ LỚP LOGIC
                 if (appState.viewMode == 1 && !edge.isBuilt) {
-                    // Cáp không được lắp đặt (Edge #5 quá đắt, Edge #8 quá dài >100m): vẽ mờ nhẹ
                     edgeColor = sf::Color(203, 213, 225, 95);
                     thickness = 1.3f;
                 } else if (appState.viewMode == 1 && edge.currentLoad >= 0.80) {
-                    // Cáp đang bị tắc nghẽn cao trong kịch bản: tô màu vàng cam cảnh báo
                     edgeColor = sf::Color(234, 88, 12, 210);
                     thickness = 2.6f;
                 } else {
@@ -1780,11 +1725,11 @@ int main() {
                 thickness = 5.0f;
             }
 
-            if (isCurvedDiagonal(edge.u, edge.v)) {
+            if (isPairMatch(edge.u, edge.v, curvedDiagU, curvedDiagV)) {
                 if (isEdgeHovered) {
-                    drawCurvedCable(window, p1, r2r4Ctrl, p2, sf::Color(254, 202, 202, 200), thickness + 4.0f);
+                    drawCurvedCable(window, p1, diagCtrl, p2, sf::Color(254, 202, 202, 200), thickness + 4.0f);
                 }
-                drawCurvedCable(window, p1, r2r4Ctrl, p2, edgeColor, thickness);
+                drawCurvedCable(window, p1, diagCtrl, p2, edgeColor, thickness);
             } else {
                 if (isEdgeHovered) {
                     drawThickLine(window, p1, p2, sf::Color(254, 202, 202, 200), thickness + 4.0f);
@@ -1799,17 +1744,17 @@ int main() {
                 const Edge& edge = workingGraph.getEdge(eId);
                 if (!nodePositions.count(edge.u) || !nodePositions.count(edge.v)) continue;
 
-                sf::Vector2f p1 = nodePositions[edge.u];
-                sf::Vector2f p2 = nodePositions[edge.v];
+                sf::Vector2f p1 = nodePositions.at(edge.u);
+                sf::Vector2f p2 = nodePositions.at(edge.v);
                 sf::Vector2f badgePos;
 
-                if (isCurvedDiagonal(edge.u, edge.v)) {
-                    badgePos = evalQuadraticBezier(p1, r2r4Ctrl, p2, 0.5f);
+                if (isPairMatch(edge.u, edge.v, curvedDiagU, curvedDiagV)) {
+                    badgePos = evalQuadraticBezier(p1, diagCtrl, p2, 0.5f);
                 } else {
                     badgePos = (p1 + p2) * 0.5f;
                 }
 
-                if ((edge.u == 0 && edge.v == 2) || (edge.u == 2 && edge.v == 0)) {
+                if (isPairMatch(edge.u, edge.v, straightDiagU, straightDiagV)) {
                     badgePos.x -= 22.0f;
                     badgePos.y += 18.0f;
                 }
@@ -2091,7 +2036,7 @@ int main() {
         // 5. HIỆU ỨNG SÓNG LAN TỎA (RIPPLE)
         for (const auto& rip : appState.ripples) {
             if (nodePositions.count(rip.nodeId)) {
-                sf::Vector2f rPos = nodePositions[rip.nodeId];
+                sf::Vector2f rPos = nodePositions.at(rip.nodeId);
                 float radius = NODE_RADIUS + rip.timer * 35.0f;
                 int alpha = static_cast<int>(240.0f * (1.0f - rip.timer));
                 sf::CircleShape ripShape(radius);
@@ -2110,12 +2055,12 @@ int main() {
             int u = pkt.path[pkt.currentHopIndex];
             int v = pkt.path[pkt.currentHopIndex + 1];
             if (nodePositions.count(u) && nodePositions.count(v)) {
-                sf::Vector2f a = nodePositions[u];
-                sf::Vector2f b = nodePositions[v];
+                sf::Vector2f a = nodePositions.at(u);
+                sf::Vector2f b = nodePositions.at(v);
                 sf::Vector2f pktPos;
 
-                if (isCurvedDiagonal(u, v)) {
-                    pktPos = evalQuadraticBezier(a, r2r4Ctrl, b, pkt.progress);
+                if (isPairMatch(u, v, curvedDiagU, curvedDiagV)) {
+                    pktPos = evalQuadraticBezier(a, diagCtrl, b, pkt.progress);
                 } else {
                     pktPos = sf::Vector2f(
                         (1.0f - pkt.progress) * a.x + pkt.progress * b.x,

@@ -4,18 +4,10 @@
 #include <limits>
 #include "RoutingCost.h"
 
-double unitWeight(const Edge&) { return 1.0; }
 double lengthWeight(const Edge& e) { return e.length; }
 
 namespace {
 
-// ------------------------------------------------------------
-// Task A3.3 - Min heap
-// State giữ (khoảng cách hiện tại tới node, node đó).
-// priority_queue mặc định là MAX-heap, nên phải dùng greater<State>
-// để lấy ra được State có dist NHỎ NHẤT trước - đúng ý tưởng của Dijkstra
-// ("luôn xử lý node gần nguồn nhất còn lại trước").
-// ------------------------------------------------------------
 struct State {
     double dist;
     int    node;
@@ -30,18 +22,16 @@ bool operator>(const State& a, const State& b) {
 PathResult dijkstra(const Graph& g, int source, int destination, const WeightFn& weight, bool onlyBuilt) {
     PathResult result;
 
-    if (!g.hasNode(source) || !g.hasNode(destination)) return result;  // reachable = false
+    if (!g.hasNode(source) || !g.hasNode(destination)) return result;
 
-    // dist/parent/parentEdge dùng unordered_map vì id node có thể không liên tục (sparse)
     std::unordered_map<int, double> dist;
-    std::unordered_map<int, int>    parent;      // parent[v] = node trước v trên đường đi ngắn nhất
-    std::unordered_map<int, int>    parentEdge;  // parentEdge[v] = edgeId nối parent[v] -> v
-    std::unordered_map<int, bool>   visited;     // node đã "chốt" khoảng cách ngắn nhất chưa
+    std::unordered_map<int, int>    parent;
+    std::unordered_map<int, int>    parentEdge;
+    std::unordered_map<int, bool>   visited;
 
     for (int id : g.nodeIds()) dist[id] = std::numeric_limits<double>::infinity();
     dist[source] = 0.0;
 
-    // Task A3.3: Min heap - luôn pop ra state có dist nhỏ nhất
     std::priority_queue<State, std::vector<State>, std::greater<State>> pq;
     pq.push({0.0, source});
 
@@ -49,39 +39,35 @@ PathResult dijkstra(const Graph& g, int source, int destination, const WeightFn&
         State cur = pq.top();
         pq.pop();
 
-        // Bỏ record cũ: node đã chốt rồi, hoặc dist trong state đã lỗi thời
-        // (đã bị một lần relax sau ghi đè bằng giá trị nhỏ hơn) thì bỏ qua.
         if (visited[cur.node]) continue;
         if (cur.dist > dist[cur.node]) continue;
 
         visited[cur.node] = true;
-        if (cur.node == destination) break;   // đã chốt xong đích, không cần đi tiếp
+        if (cur.node == destination) break;
 
-        // Task A3.4: Relaxation
         for (int edgeId : g.getNeighbors(cur.node)) {
             const Edge& e = g.getEdge(edgeId);
-            if (!e.isUp) continue;             // day dang dut -> khong the di qua
-            if (onlyBuilt && !e.isBuilt) continue;  // chi di tren day DA LAP (MST + Backup)
+            if (!e.isUp) continue;
+            if (onlyBuilt && !e.isBuilt) continue;
             int v = g.otherEndpoint(cur.node, edgeId);
             if (v == -1 || visited[v]) continue;
 
             double w = weight(e);
             double newDist = dist[cur.node] + w;
 
-            if (newDist < dist[v]) {           // if dist[v] > dist[u] + w
+            if (newDist < dist[v]) {
                 dist[v] = newDist;
                 parent[v] = cur.node;
-                parentEdge[v] = edgeId;        // lưu ĐÚNG edgeId - quan trọng khi có cạnh song song
+                parentEdge[v] = edgeId;
                 pq.push({newDist, v});
             }
         }
     }
 
     if (!visited[destination]) {
-        return result;   // reachable = false, không tới được
+        return result;
     }
 
-    // Task A3.5: Reconstruct path - đi ngược từ destination về source rồi đảo chiều
     std::vector<int> nodesRev;
     std::vector<int> edgesRev;
     int cur = destination;
@@ -102,7 +88,6 @@ PathResult dijkstra(const Graph& g, int source, int destination, const WeightFn&
 }
 
 PathResult dijkstra(const Graph& g, int source, int destination, const Packet& packet, bool onlyBuilt) {
-    // Gọi thẳng dijkstra chuẩn với trọng số tính trực tiếp từ Packet qua RoutingCost
     return dijkstra(g, source, destination, [&packet](const Edge& e) {
         return RoutingCost::calculateRoutingCost(packet, e);
     }, onlyBuilt);

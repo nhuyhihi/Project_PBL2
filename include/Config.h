@@ -7,8 +7,8 @@ namespace Config {
     // 1. Hằng số Mạng cơ bản
     const double MAX_LOAD = 1.0;               // Tải tối đa
     const double DEFAULT_TERRAIN_FACTOR = 1.0; // Hệ số địa hình mặc định
-    const double LOAD_WINDOW_SECONDS = 1.0;    // C?a s? th?i gian ?o t?i (gi?y)
-    const double LOAD_DECAY_RATE = 0.99;       // H? s? suy gi?m t?i sau m?i b??c
+    const double LOAD_WINDOW_SECONDS = 1.0;    // Cửa sổ thời gian đo tải (giây)
+    const double LOAD_DECAY_RATE = 0.99;       // Hệ số suy giảm tải sau mỗi bước
 
     // 2. Hằng số Thuật toán 
     const double INF = std::numeric_limits<double>::infinity(); // Đại diện cho đứt cáp/không liên thông
@@ -17,7 +17,7 @@ namespace Config {
     const double SPEED_OF_LIGHT_FIBER = 2.0e8; // m/s (Trong cáp quang/cáp đồng)
     const double SPEED_OF_LIGHT_AIR = 3.0e8;   // m/s (Sóng Wireless)
 
-    // 5. Trọng số QoS cho Dynamic Routing Cost (Tuần 4, Task A4.2)
+    // 4. Trọng số QoS cho Dynamic Routing Cost
     // Dùng trong RoutingCost::calculateRoutingCost() để Dijkstra chọn đường
     // phù hợp với từng loại gói tin. KHÔNG hard-code các số này trong .cpp.
     struct QoSWeight {
