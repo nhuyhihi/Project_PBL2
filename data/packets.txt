@@ -1,9 +1,27 @@
 # Cấu trúc: id src dest size type protocol canFragment newConnection
 # canFragment và newConnection: 1 là true, 0 là false
 
+# 1. Gói VoIP / Audio thời gian thực (500B, nhạy cảm trễ/jitter, UDP, không phân mảnh)
 0 0 3 500 REAL_TIME UDP 0 0
-1 0 3 3000 BULK_DATA TCP 1 1
+
+# 2. Gói Tải tệp lớn (3000B > MTU 1500B -> tự động băm 2 mảnh, TCP, ưu tiên băng thông cao)
+1 0 3 3000 BULK_DATA TCP 1 0
+
+# 3. Gói Video Streaming HD thời gian thực (1400B cận MTU 1500B, UDP)
+2 0 3 1400 REAL_TIME UDP 1 0
+
+# 4. Gói Tệp dữ liệu rất lớn (4500B > MTU 1500B -> băm 3 mảnh, TCP)
+3 0 3 4500 BULK_DATA TCP 1 0
+
+# 5. Gói Web HTTPS mới (800B, TCP Handshake -> cộng 1.5 * RTT bắt tay 3 bước)
+4 0 3 800 CONTROL TCP 1 1
+
+# 6. Gói Lệnh Ping / Điều khiển mạng (64B siêu nhỏ, trễ tối thiểu, UDP)
+5 0 3 64 CONTROL UDP 0 0
+
+# 7. Gói Kiểm thử Chặn DF (3000B > MTU 1500B nhưng bật cờ DF=Chặn -> Kích hoạt DROP MTU)
+6 0 3 3000 CONTROL TCP 0 1
 
 # --- Test Validation ---
-# Packet có kích thước âm (sẽ bị REJECT)
-2 0 3 -100 CONTROL TCP 0 0
+# Packet có kích thước âm (sẽ bị REJECT đúng yêu cầu đồ án)
+99 0 3 -100 CONTROL TCP 0 0

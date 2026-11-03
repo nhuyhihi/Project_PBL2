@@ -47,7 +47,7 @@ constexpr float STATUS_BAR_HEIGHT     = 28.0f;
 
 // Thông số Vùng an toàn (Safe Zone) & Bố cục mạng mở rộng
 constexpr float SAFE_CENTER_X         = 500.0f;
-constexpr float SAFE_CENTER_Y         = 375.0f;
+constexpr float SAFE_CENTER_Y         = 410.0f;
 constexpr float ROUTER_RADIUS         = 210.0f;
 constexpr float HOST_DISTANCE         = 120.0f;
 constexpr float NODE_RADIUS           = 22.0f;
@@ -332,6 +332,7 @@ void drawCurvedCable(sf::RenderWindow& win, const sf::Vector2f& p1, const sf::Ve
 
 void drawLinkBadge(sf::RenderWindow& win, const sf::Font& font, const sf::Vector2f& pos, 
                    const std::string& text, sf::Color bgColor, sf::Color borderColor, sf::Color textColor) {
+    if (text.empty()) return;
     sf::Text txt(font);
     txt.setString(sf::String::fromUtf8(text.begin(), text.end()));
     txt.setCharacterSize(10);
@@ -636,7 +637,7 @@ int main() {
 
     // Tạo danh sách mẫu gói tin động từ vector<Packet> nạp từ data/packets.txt
     std::vector<std::string> packetPresetLabels;
-    packetPresetLabels.push_back("Chuẩn 1500B (UDP, Cho phân mảnh)");
+    packetPresetLabels.push_back("Chuẩn 1500B | REAL_TIME | UDP | Cho băm");
     for (const Packet& p : packets) {
         std::string tStr = EnumUtils::toString(p.type);
         std::string prStr = EnumUtils::toString(p.protocol);
@@ -823,12 +824,14 @@ int main() {
                             // recordKruskalSteps(..., true) làm cáp "Chưa lắp" bị lắp thêm ngay khi có cáp đứt.
                             updateRoutingPath(workingGraph, packets, appState);
 
-                            appState.statusMessage = (edge.isUp ? "Đã phục hồi liên kết #" : "Đã cắt đứt liên kết #") +
-                                                     std::to_string(cutEdgeId) + " (" + uName + " - " + vName + ").";
+                            std::string cutPrefix = (edge.isUp ? "[Đã nối lại #" : "[Đã cắt cáp #") + std::to_string(cutEdgeId) + " (" + uName + "-" + vName + ")] ";
+                            appState.statusMessage = (appState.selectedDstNode != -1) ? (cutPrefix + appState.statusMessage) : (cutPrefix + "Click tiếp cáp khác để cắt/nối, hoặc bấm nút Cắt Cáp để thoát.");
                         } else {
                             appState.statusMessage = "Không bấm trúng cạnh nào. Đã thoát chế độ Cắt Cáp.";
+                            appState.isCutModeActive = false;
+                            // Giữ nguyên isCutModeActive = true khi cắt trúng cáp để có thể cắt liên tiếp nhiều cáp
                         }
-                        appState.isCutModeActive = false;
+                        // Giữ nguyên isCutModeActive = true khi cắt trúng cáp để có thể cắt liên tiếp nhiều cáp
                     }
                     // 2. Chế độ Chọn Node nguồn / đích trên Canvas
                     else {
@@ -1166,7 +1169,7 @@ int main() {
                 for (int i = 0; i < static_cast<int>(allNodeIds.size()); ++i) {
                     if (allNodeIds[i] == appState.selectedDstNode) curDstIdx = i;
                 }
-                const char* dstPreview = (curDstIdx >= 0) ? nodeLabels[curDstIdx].c_str() : "(Chọn)";
+                const char* dstPreview = (curDstIdx >= 0) ? nodeLabels[curDstIdx].c_str() : "--";
                 if (ImGui::BeginCombo("##DstCombo", dstPreview)) {
                     for (int i = 0; i < static_cast<int>(allNodeIds.size()); ++i) {
                         if (allNodeIds[i] == appState.selectedSrcNode) continue;
@@ -1204,8 +1207,9 @@ int main() {
                     ImGui::TextColored(ImVec4(0.45f, 0.50f, 0.55f, 1.0f), "[QoS: CONTROL]");
                 }
 
-                ImGui::SameLine(0, 10.0f);
+
                 if (appState.currentPath.reachable && appState.currentPath.nodes.size() >= 2) {
+                    ImGui::SameLine(0, 10.0f);
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.62f, 0.28f, 1.0f));
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
                     if (ImGui::Button(" Gửi Gói Tin ")) {
@@ -1230,8 +1234,7 @@ int main() {
                 Packet activePkt = buildCurrentPacket(appState, packets, appState.selectedSrcNode, appState.selectedDstNode);
 
                 if (appState.selectedDstNode == -1) {
-                    ImGui::TextColored(ImVec4(0.45f, 0.50f, 0.55f, 1.0f),
-                        "Chọn trạm Đích ở trên hoặc click chuột trái vào trạm trên sơ đồ (Chuột phải: Đổi trạm Nguồn).");
+                    ImGui::TextColored(ImVec4(0.45f, 0.50f, 0.55f, 1.0f), "Click chuột trái: Chọn Đích  |  Chuột phải: Đổi Nguồn");
                 } else if (appState.currentPath.reachable) {
                     std::string pathSummary = formatNodePath(workingGraph, appState.currentPath.nodes);
                     double distM = calculatePathPhysicalLength(workingGraph, appState.currentPath.nodes);
@@ -1291,8 +1294,16 @@ int main() {
 
                         // 1. BẢNG SO SÁNH 3 MỨC NGÂN SÁCH
                         double costAll = 0.0;
+                        int feasibleEdgeCount = 0;
                         for (int eId : baseGraph.edgeIds()) {
-                            costAll += costFn(baseGraph.getEdge(eId));
+                            const Edge& bEdge = baseGraph.getEdge(eId);
+                            if (Validation::isStaticFeasible(bEdge)) {
+                                double c = costFn(bEdge);
+                                if (!std::isinf(c)) {
+                                    costAll += c;
+                                    feasibleEdgeCount++;
+                                }
+                            }
                         }
 
                         double costMST = appState.mstResult.totalCost;
@@ -1303,24 +1314,24 @@ int main() {
                         ImGui::Spacing();
                         ImGui::TextColored(ImVec4(0.12f, 0.46f, 0.85f, 1.0f), "SO SÁNH 3 MỨC NGÂN SÁCH:");
                         if (ImGui::BeginTable("BudgetCompare", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
-                            ImGui::TableSetupColumn("Phương Án");
-                            ImGui::TableSetupColumn("Chi Phí");
-                            ImGui::TableSetupColumn("Bảo Vệ / Lợi Ích");
+                            ImGui::TableSetupColumn("Phương Án", ImGuiTableColumnFlags_WidthFixed, 118.0f);
+                            ImGui::TableSetupColumn("Chi Phí", ImGuiTableColumnFlags_WidthFixed, 74.0f);
+                            ImGui::TableSetupColumn("Đặc Điểm", ImGuiTableColumnFlags_WidthStretch);
                             ImGui::TableHeadersRow();
 
                             // 1. Toàn Bộ
                             ImGui::TableNextRow();
                             ImGui::TableSetColumnIndex(0);
-                            ImGui::Text("1. Toàn Bộ");
+                            ImGui::Text("1. Toàn bộ");
                             ImGui::TableSetColumnIndex(1);
                             ImGui::Text("%.0f ĐV", costAll);
                             ImGui::TableSetColumnIndex(2);
-                            ImGui::TextColored(ImVec4(0.85f, 0.25f, 0.25f, 1.0f), "Tốn kém (%d cáp)", static_cast<int>(baseGraph.edgeIds().size()));
+                            ImGui::TextColored(ImVec4(0.85f, 0.25f, 0.25f, 1.0f), "Tốn kém (%d cáp)", feasibleEdgeCount);
 
                             // 2. Cây Khung (MST)
                             ImGui::TableNextRow();
                             ImGui::TableSetColumnIndex(0);
-                            ImGui::TextColored(ImVec4(0.12f, 0.62f, 0.28f, 1.0f), "2. Cây Khung (MST)");
+                            ImGui::TextColored(ImVec4(0.12f, 0.62f, 0.28f, 1.0f), "2. Cây khung (MST)");
                             ImGui::TableSetColumnIndex(1);
                             if (std::isinf(costMST) || !appState.mstResult.connected) {
                                 ImGui::TextColored(ImVec4(0.85f, 0.2f, 0.2f, 1.0f), "Không khả thi");
@@ -1329,15 +1340,15 @@ int main() {
                             }
                             ImGui::TableSetColumnIndex(2);
                             if (appState.mstResult.connected) {
-                                ImGui::TextColored(ImVec4(0.12f, 0.62f, 0.28f, 1.0f), "-%.1f%% (%d cáp)", savedPct, static_cast<int>(appState.mstResult.edgeIds.size()));
+                                ImGui::TextColored(ImVec4(0.12f, 0.62f, 0.28f, 1.0f), "Rẻ nhất (-%.0f%%)", savedPct);
                             } else {
-                                ImGui::TextColored(ImVec4(0.85f, 0.2f, 0.2f, 1.0f), "Bị chia cắt (%d cáp)", static_cast<int>(appState.mstResult.edgeIds.size()));
+                                ImGui::TextColored(ImVec4(0.85f, 0.2f, 0.2f, 1.0f), "Bị chia cắt");
                             }
 
                             // 3. MST + Dự Phòng (Cùng mất đi nếu MST không liên thông)
                             ImGui::TableNextRow();
                             ImGui::TableSetColumnIndex(0);
-                            ImGui::TextColored(ImVec4(0.15f, 0.45f, 0.95f, 1.0f), "3. MST + Dự Phòng");
+                            ImGui::TextColored(ImVec4(0.15f, 0.45f, 0.95f, 1.0f), "3. MST + Dự phòng");
                             ImGui::TableSetColumnIndex(1);
                             if (std::isinf(costMST) || !appState.mstResult.connected) {
                                 ImGui::TextColored(ImVec4(0.85f, 0.2f, 0.2f, 1.0f), "Không khả thi");
@@ -1346,7 +1357,7 @@ int main() {
                             }
                             ImGui::TableSetColumnIndex(2);
                             if (appState.mstResult.connected) {
-                                ImGui::TextColored(ImVec4(0.15f, 0.45f, 0.95f, 1.0f), "%d/%d cạnh (+%d bk)", appState.backupResult.protectedTreeEdges, appState.backupResult.treeEdges, static_cast<int>(appState.backupResult.edgeIds.size()));
+                                ImGui::TextColored(ImVec4(0.15f, 0.45f, 0.95f, 1.0f), "Chịu lỗi (+%d cáp)", static_cast<int>(appState.backupResult.edgeIds.size()));
                             } else {
                                 ImGui::TextColored(ImVec4(0.85f, 0.2f, 0.2f, 1.0f), "Mạng không liên thông");
                             }
@@ -1652,7 +1663,11 @@ int main() {
                 ImGui::TextColored(ImVec4(0.9f, 0.2f, 0.2f, 1.0f), "[! CẢNH BÁO] Trạm %s bị cô lập!", isolatedWarn.c_str());
                 ImGui::SameLine();
             } else {
-                ImGui::TextColored(ImVec4(0.15f, 0.55f, 0.25f, 1.0f), "[TRẠNG THÁI]:");
+                if (appState.statusMessage.find("DROP") != std::string::npos) {
+                    ImGui::TextColored(ImVec4(0.85f, 0.18f, 0.18f, 1.0f), "[TRẠNG THÁI - DROP]:");
+                } else {
+                    ImGui::TextColored(ImVec4(0.15f, 0.55f, 0.25f, 1.0f), "[TRẠNG THÁI]:");
+                }
                 ImGui::SameLine();
             }
             ImGui::TextUnformatted(appState.statusMessage.c_str());
@@ -1725,7 +1740,7 @@ int main() {
                 } else if (inMST) {
                     edgeColor = sf::Color(35, 170, 75, 255);  // Cây khung MST: Xanh lá cây đậm
                     thickness = 3.2f;
-                } else if (isBackup && appState.mstResult.connected) {
+                } else if (isBackup && appState.mstResult.connected && appState.currentKruskalStep >= static_cast<int>(appState.kruskalHistory.size())) {
                     edgeColor = sf::Color(37, 99, 235, 255);  // Cáp dự phòng: XANH DƯƠNG NỔI BẬT (#2563EB)
                     thickness = 2.8f;
                 } else {
@@ -1814,10 +1829,10 @@ int main() {
                     badgeBorder = sf::Color(185, 28, 28);
                     badgeTextColor = sf::Color::White;
                 } else if (appState.viewMode == 0) { // Lớp Vật Lý (MST)
-                    double cost = pricingModel.calculateCablingCost(edge).total;
-                    badgeText = std::to_string(static_cast<int>(cost)) + " ĐV";
+                    badgeText = ""; // Mặc định không hiện nhãn khi chưa xét đến
                     
                     if (appState.isMSTActive) {
+                        double cost = pricingModel.calculateCablingCost(edge).total;
                         bool inMST = false;
                         for (int i = 0; i < appState.currentKruskalStep; ++i) {
                             if (appState.kruskalHistory[i].edgeId == eId && appState.kruskalHistory[i].isSelected) {
@@ -1825,17 +1840,33 @@ int main() {
                                 break;
                             }
                         }
-                        if (inMST) {
+                        bool isCurrent = (appState.currentKruskalStep < static_cast<int>(appState.kruskalHistory.size()) &&
+                                          appState.kruskalHistory[appState.currentKruskalStep].edgeId == eId);
+
+                        if (isCurrent) {
+                            badgeText = std::to_string(static_cast<int>(cost)) + " ĐV";
+                            badgeBg = sf::Color(254, 249, 195);
+                            badgeBorder = sf::Color(234, 179, 8);
+                            badgeTextColor = sf::Color(161, 98, 7);
+                        } else if (inMST) {
+                            badgeText = std::to_string(static_cast<int>(cost)) + " ĐV";
                             badgeBg = sf::Color(236, 253, 245);
                             badgeBorder = sf::Color(34, 197, 94);
                             badgeTextColor = sf::Color(21, 128, 61);
-                        } else if (isBackup && appState.mstResult.connected) {
+                        } else if (isBackup && appState.mstResult.connected && appState.currentKruskalStep >= static_cast<int>(appState.kruskalHistory.size())) {
+                            badgeText = std::to_string(static_cast<int>(cost)) + " ĐV";
                             badgeBg = sf::Color(239, 246, 255);
                             badgeBorder = sf::Color(37, 99, 235);
                             badgeTextColor = sf::Color(29, 78, 216);
                         }
+                    } else {
+                        // Sơ đồ ban đầu (chưa bấm Chạy MST): chỉ hiện cự ly mét của các tuyến liên kết tiềm năng
+                        badgeText = std::to_string(static_cast<int>(edge.length)) + "m";
+                        badgeBg = sf::Color(248, 250, 252, 220);
+                        badgeBorder = sf::Color(203, 213, 225);
+                        badgeTextColor = sf::Color(100, 116, 139);
                     }
-                } else { // Lớp Logic (Routing) - Hiển thị mét + băng thông + tải / trễ hàng đợi động
+                } else { // Lớp Logic (Routing) - Hiển thị mét + tải / trễ hàng đợi động (đã bỏ 1G, 10G)
                     if (!Validation::isStaticFeasible(edge)) {
                         badgeText = std::to_string(static_cast<int>(edge.length)) + "m (>100m)";
                         badgeBg = sf::Color(248, 250, 252, 220);
@@ -1867,13 +1898,7 @@ int main() {
                         badgeBorder = sf::Color(147, 51, 234);
                         badgeTextColor = sf::Color(107, 33, 168);
                     } else {
-                        if (edge.bandwidthMbps >= 10000.0) {
-                            badgeText = std::to_string(static_cast<int>(edge.length)) + "m (10G)";
-                        } else if (edge.bandwidthMbps >= 1000.0) {
-                            badgeText = std::to_string(static_cast<int>(edge.length)) + "m (1G)";
-                        } else {
-                            badgeText = std::to_string(static_cast<int>(edge.length)) + "m";
-                        }
+                        badgeText = std::to_string(static_cast<int>(edge.length)) + "m";
                         if (inRoutingPath) {
                             badgeBg = sf::Color(254, 243, 199);
                             badgeBorder = sf::Color(245, 158, 11);
