@@ -112,6 +112,8 @@ struct AppState {
     int lastRouteDst = -1;
     std::vector<int> lastRouteNodes;
     bool isRerouted = false;
+    bool dropByMtu = false;   // DROP vì gói DF lớn hơn MTU của cáp còn lại (không phải mất liên thông)
+    int  dropMtu = 0;         // MTU nhỏ nhất trên đường vật lý còn lại (để hiển thị)
     std::string previousRouteStr = "";
 
     // Máy trạng thái Kruskal
@@ -162,6 +164,8 @@ struct AppState {
         lastRouteDst = -1;
         lastRouteNodes.clear();
         isRerouted = false;
+        dropByMtu = false;
+        dropMtu = 0;
         previousRouteStr.clear();
         activePackets.clear();
         ripples.clear();
@@ -203,15 +207,16 @@ Packet buildCurrentPacket(const AppState& appState, const std::vector<Packet>& p
     return pkt;
 }
 
-// Kiểm tra trạm có bị cô lập hoàn toàn hoặc bị chia cắt khỏi mạng lõi không (Sử dụng module Connectivity)
-bool isNodeIsolated(const Graph& g, int nId) {
-    std::vector<int> ids = g.nodeIds();
-    if (ids.empty()) return true;
-    if (Connectivity::reachableFrom(g, nId, /*onlyBuilt=*/false).size() <= 1 && g.V() > 1) {
-        return true;
+// Mạng chính = thành phần liên thông LỚN NHẤT, chỉ tính cáp đã lắp (onlyBuilt) và đang hoạt động
+// (Sử dụng module Connectivity). Trạm không thuộc mạng chính là trạm bị cô lập.
+// Không lấy cố định 1 trạm làm gốc: nếu chính trạm gốc bị cắt rời thì sẽ báo ngược.
+// Bằng nhau về kích thước thì chọn phần chứa trạm có id nhỏ nhất (connectedComponents đã sắp sẵn).
+std::unordered_set<int> mainNetworkNodes(const Graph& g, bool onlyBuilt) {
+    std::unordered_set<int> best;
+    for (const auto& comp : Connectivity::connectedComponents(g, onlyBuilt)) {
+        if (comp.size() > best.size()) best = std::unordered_set<int>(comp.begin(), comp.end());
     }
-    int rootId = ids.front();
-    return !Connectivity::isConnected(g, rootId, nId, /*onlyBuilt=*/false);
+    return best;
 }
 
 // Tính tổng khoảng cách mét thực tế trên đường đi
@@ -485,6 +490,8 @@ void recordKruskalSteps(Graph& g, const CostModel& pricingModel, AppState& appSt
 // CẬP NHẬT ĐỊNH TUYẾN DIJKSTRA VỚI GÓI TIN HIỆN TẠI (READ-ONLY QUA EVALUATEPACKET)
 // ============================================================================
 void updateRoutingPath(const Graph& g, const std::vector<Packet>& packets, AppState& appState) {
+    appState.dropByMtu = false;
+    appState.dropMtu = 0;
     if (appState.selectedSrcNode == -1 || appState.selectedDstNode == -1 || appState.selectedSrcNode == appState.selectedDstNode) {
         appState.currentPath = PathResult();
         appState.hasRoutingInfo = false;
@@ -496,6 +503,19 @@ void updateRoutingPath(const Graph& g, const std::vector<Packet>& packets, AppSt
 
     // Chạy Dijkstra với onlyBuiltLinks (mặc định true: chỉ đi trên cáp đã lắp đặt MST + Backup)
     appState.currentPath = dijkstra(g, appState.selectedSrcNode, appState.selectedDstNode, qosPkt, appState.onlyBuiltLinks);
+
+    // Không có đường nhưng 2 trạm vẫn liên thông và gói tin bật DF => bị chặn bởi MTU
+    // (RoutingCost trả INF cho cáp có MTU nhỏ hơn gói DF). Lấy MTU nhỏ nhất trên đường còn lại để báo.
+    if (!appState.currentPath.reachable && !qosPkt.canFragment &&
+        Connectivity::isConnected(g, appState.selectedSrcNode, appState.selectedDstNode, appState.onlyBuiltLinks)) {
+        appState.dropByMtu = true;
+        PathResult physical = dijkstra(g, appState.selectedSrcNode, appState.selectedDstNode, lengthWeight, appState.onlyBuiltLinks);
+        if (physical.reachable && !physical.edges.empty()) {
+            int minMtu = g.getEdge(physical.edges.front()).mtu;
+            for (int id : physical.edges) minMtu = std::min(minMtu, g.getEdge(id).mtu);
+            appState.dropMtu = minMtu;
+        }
+    }
 
     // Sử dụng Simulator::evaluatePacket (Read-Only, không cần copy Graph hay làm bẩn currentLoad)
     appState.logicSimResult = Simulator::evaluatePacket(qosPkt, appState.currentPath, g);
@@ -538,16 +558,17 @@ void updateRoutingPath(const Graph& g, const std::vector<Packet>& packets, AppSt
         }
         appState.statusMessage = ss.str();
     } else {
-        if (qosPkt.sizeBytes > 1500 && !qosPkt.canFragment) {
+        if (appState.dropByMtu) {
+            std::string mtuText = appState.dropMtu > 0 ? " (" + std::to_string(appState.dropMtu) + "B)" : "";
             appState.statusMessage = "DROP [DF_BLOCKED_BY_MTU]: Gói tin " + std::to_string(qosPkt.sizeBytes) +
-                                     "B vượt quá MTU (1500B) nhưng bật cờ DF (Không cho phân mảnh)!";
+                                     "B vượt quá MTU" + mtuText + " nhưng bật cờ DF (Không cho phân mảnh)!";
         } else {
             appState.statusMessage = "DROP [UNREACHABLE]: Không còn đường đi hợp lệ từ " + srcName + " đến " + dstName + "!";
         }
     }
 }
 
-void applyScenarioToStep(Graph& workingGraph, const Graph& baseGraph, const CostModel& pricingModel,
+void applyScenarioToStep(Graph& workingGraph, const Graph& baseGraph, const CostModel& /*pricingModel*/,
                          const std::vector<Packet>& packets, const Scenario& scenario, int targetStep, AppState& appState) {
     // Khôi phục từ baseGraph (đã có sẵn cờ isBuilt & isBackup của quy hoạch hạ tầng ban đầu)
     workingGraph = baseGraph;
@@ -559,11 +580,9 @@ void applyScenarioToStep(Graph& workingGraph, const Graph& baseGraph, const Cost
             }
         }
     }
-    // Cập nhật lịch sử Kruskal (nhưng giữ nguyên hạ tầng isBuilt của baseGraph để mô phỏng đúng chuẩn)
-    recordKruskalSteps(workingGraph, pricingModel, appState, /*updateGraphBuildFlags=*/false);
-    if (appState.isMSTActive) {
-        appState.currentKruskalStep = static_cast<int>(appState.kruskalHistory.size());
-    }
+    // Hạ tầng (MST + Backup) đã quy hoạch một lần trên baseGraph, sự kiện mạng KHÔNG làm thay đổi.
+    // Vì vậy không tính lại Kruskal ở đây (nếu tính lại, bảng ngân sách và lịch sử Kruskal sẽ đổi theo
+    // cáp đứt, như thể vừa lắp thêm cáp mới).
     // Tự động cập nhật ngay lập tức lộ trình và độ trễ ở Lớp Logic
     updateRoutingPath(workingGraph, packets, appState);
 }
@@ -799,11 +818,9 @@ int main() {
                             std::string uName = workingGraph.getNode(edge.u).name.empty() ? std::to_string(edge.u) : workingGraph.getNode(edge.u).name;
                             std::string vName = workingGraph.getNode(edge.v).name.empty() ? std::to_string(edge.v) : workingGraph.getNode(edge.v).name;
 
-                            // Tự động tính toán lại Kruskal & Backup theo trạng thái cáp vừa cắt
-                            recordKruskalSteps(workingGraph, pricingModel, appState, /*updateGraphBuildFlags=*/true);
-                            if (appState.isMSTActive) {
-                                appState.currentKruskalStep = static_cast<int>(appState.kruskalHistory.size());
-                            }
+                            // Cắt cáp KHÔNG được quy hoạch lại hạ tầng: chỉ định tuyến lại trên các cáp ĐÃ LẮP
+                            // (MST + Backup) còn hoạt động, giống chế độ Kịch Bản. Trước đây gọi lại
+                            // recordKruskalSteps(..., true) làm cáp "Chưa lắp" bị lắp thêm ngay khi có cáp đứt.
                             updateRoutingPath(workingGraph, packets, appState);
 
                             appState.statusMessage = (edge.isUp ? "Đã phục hồi liên kết #" : "Đã cắt đứt liên kết #") +
@@ -1016,7 +1033,9 @@ int main() {
                     appState.sidebarMode = 0;
                     appState.switchTabRequested = true;
                     appState.requestedTab = 0;
-                    recordKruskalSteps(workingGraph, pricingModel, appState, /*updateGraphBuildFlags=*/true);
+                    // Hiển thị quy hoạch gốc tính trên baseGraph, không ghi đè cờ isBuilt của workingGraph
+                    // (nếu đang có cáp đứt, ghi đè sẽ lắp thêm cáp mới vào mạng đang mô phỏng)
+                    recordKruskalSteps(baseGraph, pricingModel, appState, /*updateGraphBuildFlags=*/false);
                     appState.currentKruskalStep = static_cast<int>(appState.kruskalHistory.size());
                     appState.statusMessage = "Chế độ MST: Đã tính toán cây khung (Xanh lá) và cáp dự phòng (Xanh dương).";
                 } else {
@@ -1233,10 +1252,10 @@ int main() {
                             "[REROUTE từ %s]", appState.previousRouteStr.c_str());
                     }
                 } else {
-                    if (activePkt.sizeBytes > 1500 && !activePkt.canFragment) {
+                    if (appState.dropByMtu) {
                         ImGui::TextColored(ImVec4(0.85f, 0.18f, 0.18f, 1.0f),
-                            "[DROP - DF_BLOCKED_BY_MTU] Gói %dB vượt MTU (1500B) nhưng bật cờ DF (Cấm phân mảnh)!",
-                            activePkt.sizeBytes);
+                            "[DROP - DF_BLOCKED_BY_MTU] Gói %dB vượt MTU (%dB) nhưng bật cờ DF (Cấm phân mảnh)!",
+                            activePkt.sizeBytes, appState.dropMtu);
                     } else {
                         ImGui::TextColored(ImVec4(0.85f, 0.18f, 0.18f, 1.0f),
                             "[DROP - UNREACHABLE] Mất liên lạc từ %s đến %s trên hạ tầng cáp đã lắp đặt!",
@@ -1411,6 +1430,12 @@ int main() {
                                     IOManager::loadScenario("data/scenarios/" + appState.scenarioFiles[i], appState.loadedScenario);
                                     appState.maxScenarioSteps = static_cast<int>(appState.loadedScenario.events.size());
                                     appState.currentScenarioStep = 0;
+                                    // Kịch bản mới: quên lộ trình của kịch bản cũ để không hiện nhầm nhãn REROUTE
+                                    appState.isRerouted = false;
+                                    appState.previousRouteStr.clear();
+                                    appState.lastRouteNodes.clear();
+                                    appState.lastRouteSrc = -1;
+                                    appState.lastRouteDst = -1;
                                     if (appState.selectedDstNode == -1 && !packets.empty()) {
                                         appState.selectedSrcNode = packets.front().source;
                                         appState.selectedDstNode = packets.front().destination;
@@ -1613,8 +1638,9 @@ int main() {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(14.0f, 5.0f));
         if (ImGui::Begin("##StatusBar", nullptr, toolbarFlags)) {
             std::string isolatedWarn = "";
+            const std::unordered_set<int> mainNetStatus = mainNetworkNodes(workingGraph, appState.onlyBuiltLinks);
             for (int nId : workingGraph.nodeIds()) {
-                if (isNodeIsolated(workingGraph, nId)) {
+                if (mainNetStatus.count(nId) == 0) {
                     std::string nm = workingGraph.getNode(nId).name;
                     if (nm.empty()) nm = "Node " + std::to_string(nId);
                     if (!isolatedWarn.empty()) isolatedWarn += ", ";
@@ -1861,12 +1887,13 @@ int main() {
         }
 
         // 4. VẼ CÁC TRẠM MẠNG (ROUTER / HOST) VÀ CẢNH BÁO CÔ LẬP
+        const std::unordered_set<int> mainNetDraw = mainNetworkNodes(workingGraph, appState.onlyBuiltLinks);
         for (const auto& [nId, pos] : nodePositions) {
             bool isHost = (workingGraph.getNode(nId).type == NodeType::HOST);
             bool isSelectedSrc = (nId == appState.selectedSrcNode);
             bool isSelectedDst = (nId == appState.selectedDstNode);
             bool isHovered = (nId == appState.hoveredNodeId);
-            bool isolated = isNodeIsolated(workingGraph, nId);
+            bool isolated = (mainNetDraw.count(nId) == 0);
 
             // NẾU TRẠM BỊ CÔ LẬP KHỎI MẠNG CHÍNH: Vẽ viền đỏ cảnh báo và huy hiệu [CÔ LẬP]
             if (isolated) {
