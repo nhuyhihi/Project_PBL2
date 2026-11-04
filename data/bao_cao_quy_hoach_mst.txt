@@ -1,0 +1,25 @@
+================================================================================
+          BAO CAO KET QUA QUY HOACH HA TANG CAP VIEN THONG (PBL2)
+================================================================================
+
+1. SO SANH 3 MUC NGAN SACH DAU TU:
+   - Phuong an 1 (Toan bo cap kha thi): 21538 DV (8 cap - Ton kem, du thua)
+   - Phuong an 2 (Cay khung toi uu MST): 6544 DV (5 cap - Tiet kiem 69%)
+   - Phuong an 3 (MST + Cap du phong):   12440 DV (7 cap - Bao ve 2 canh)
+
+2. DANH SACH TUYEN CAP CAY KHUNG (MST THI CONG CHINH):
+   [1] Tuyen R1 - H1 | Cu ly: 40m | Loai: Copper | Chi phi: 120 DV
+   [2] Tuyen R4 - H2 | Cu ly: 50m | Loai: Copper | Chi phi: 130 DV
+   [3] Tuyen R2 - R3 | Cu ly: 300m | Loai: Fiber | Chi phi: 1598 DV
+   [4] Tuyen R1 - R2 | Cu ly: 400m | Loai: Fiber | Chi phi: 2098 DV
+   [5] Tuyen R2 - R4 | Cu ly: 500m | Loai: Fiber | Chi phi: 2598 DV
+
+3. DANH SACH TUYEN CAP DU PHONG (BACKUP):
+   [1] Tuyen R1 - R3 | Cu ly: 450m | Loai: Fiber | Chi phi: 2798 DV
+   [2] Tuyen R3 - R4 | Cu ly: 600m | Loai: Fiber | Chi phi: 3098 DV
+
+4. TONG KET HA TANG XAY DUNG:
+   - Tong so tram mang: 6 (Router & Host)
+   - Tong tuyen cap thi cong: 7 tuyen
+   - Tong chi phi thi cong: 12440 DV
+================================================================================
