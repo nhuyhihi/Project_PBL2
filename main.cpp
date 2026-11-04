@@ -424,6 +424,17 @@ void ApplyCleanLightTheme() {
 // HÀM KHỞI TẠO LỊCH SỬ DUYỆT CẠNH KRUSKAL & CHỌN CÁP DỰ PHÒNG BACKUP
 // (Tái sử dụng 100% buildMST & selectBackupLinks của Backend, tuân thủ DRY)
 // ============================================================================
+static std::string formatCurrency(double cost) {
+    long long c = static_cast<long long>(std::round(cost));
+    std::string s = std::to_string(c);
+    int n = static_cast<int>(s.length()) - 3;
+    while (n > 0) {
+        s.insert(n, ".");
+        n -= 3;
+    }
+    return s + " ĐV";
+}
+
 void recordKruskalSteps(Graph& g, const CostModel& pricingModel, AppState& appState, bool updateGraphBuildFlags = true) {
     appState.kruskalHistory.clear();
     auto costFn = [&pricingModel](const Edge& e) { return pricingModel.calculateCablingCost(e).total; };
@@ -461,7 +472,7 @@ void recordKruskalSteps(Graph& g, const CostModel& pricingModel, AppState& appSt
         if (rejectMap.count(edgeId) == 0) {
             step.isSelected = true;
             step.description = "Chấp nhận: Nối " + uName + " - " + vName + 
-                               ", Chi phí: " + std::to_string(static_cast<int>(step.weight)) + " ĐV";
+                               ", Chi phí: " + formatCurrency(step.weight);
         } else {
             step.isSelected = false;
             step.description = "Loại bỏ: Nối " + uName + " - " + vName + 
@@ -1175,25 +1186,6 @@ int main() {
                     appState.statusMessage = "Đã thoát chế độ Khôi Phục.";
                 }
             }
-            ImGui::SameLine(0, 6.0f);
-
-            // 5. Nút Kiểm Tra Liên Thông (Thuật toán BFS đồ thị)
-            if (ImGui::Button(" Kiểm Tra ")) {
-                bool isNetConnected = Connectivity::isNetworkConnected(workingGraph, appState.onlyBuiltLinks);
-                auto comps = Connectivity::connectedComponents(workingGraph, appState.onlyBuiltLinks);
-                auto pairs = Connectivity::pairConnectivity(workingGraph, appState.onlyBuiltLinks);
-                if (isNetConnected) {
-                    appState.statusMessage = "[Liên Thông]: Toàn mạng liên thông thông suốt (100% trạm kết nối được với nhau).";
-                } else {
-                    appState.statusMessage = "[Mất Liên Thông]: Mạng bị chia cắt thành " + std::to_string(comps.size()) + 
-                                             " vùng độc lập! Tỷ lệ liên lạc còn " + std::to_string(static_cast<int>(pairs.ratio * 100.0)) + 
-                                             "% (" + std::to_string(pairs.connectedPairs) + "/" + std::to_string(pairs.totalPairs) + " cặp trạm).";
-                }
-            }
-            if (ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Duyệt BFS kiểm tra toàn mạng có còn liên thông hay bị chia cắt.");
-            }
-
             // Nhóm bên phải: Lưu Mạng, Đặt Lại, Bảng số liệu & Thoát
             ImGui::SameLine(WINDOW_WIDTH - 335.0f);
             if (ImGui::Button(" Lưu ")) {
@@ -1440,7 +1432,7 @@ int main() {
                             ImGui::TableSetColumnIndex(0);
                             ImGui::Text("1. Toàn bộ");
                             ImGui::TableSetColumnIndex(1);
-                            ImGui::Text("%.0f ĐV", costAll);
+                            ImGui::Text("%s", formatCurrency(costAll).c_str());
                             ImGui::TableSetColumnIndex(2);
                             ImGui::TextColored(ImVec4(0.85f, 0.25f, 0.25f, 1.0f), "Tốn kém (%d cáp)", feasibleEdgeCount);
 
@@ -1452,7 +1444,7 @@ int main() {
                             if (std::isinf(costMST) || !appState.mstResult.connected) {
                                 ImGui::TextColored(ImVec4(0.85f, 0.2f, 0.2f, 1.0f), "Không khả thi");
                             } else {
-                                ImGui::TextColored(ImVec4(0.12f, 0.62f, 0.28f, 1.0f), "%.0f ĐV", costMST);
+                                ImGui::TextColored(ImVec4(0.12f, 0.62f, 0.28f, 1.0f), "%s", formatCurrency(costMST).c_str());
                             }
                             ImGui::TableSetColumnIndex(2);
                             if (appState.mstResult.connected) {
@@ -1469,7 +1461,7 @@ int main() {
                             if (std::isinf(costMST) || !appState.mstResult.connected) {
                                 ImGui::TextColored(ImVec4(0.85f, 0.2f, 0.2f, 1.0f), "Không khả thi");
                             } else {
-                                ImGui::TextColored(ImVec4(0.15f, 0.45f, 0.95f, 1.0f), "%.0f ĐV", costMSTBackup);
+                                ImGui::TextColored(ImVec4(0.15f, 0.45f, 0.95f, 1.0f), "%s", formatCurrency(costMSTBackup).c_str());
                             }
                             ImGui::TableSetColumnIndex(2);
                             if (appState.mstResult.connected) {
@@ -1528,7 +1520,7 @@ int main() {
                                 const auto& nextSt = appState.kruskalHistory[appState.currentKruskalStep];
                                 std::string uName = workingGraph.getNode(nextSt.u).name.empty() ? std::to_string(nextSt.u) : workingGraph.getNode(nextSt.u).name;
                                 std::string vName = workingGraph.getNode(nextSt.v).name.empty() ? std::to_string(nextSt.v) : workingGraph.getNode(nextSt.v).name;
-                                ImGui::TextColored(ImVec4(0.9f, 0.65f, 0.1f, 1.0f), ">> Đang xét: %s - %s (Chi phí: %.0f ĐV)", uName.c_str(), vName.c_str(), nextSt.weight);
+                                ImGui::TextColored(ImVec4(0.9f, 0.65f, 0.1f, 1.0f), ">> Đang xét: %s - %s (Chi phí: %s)", uName.c_str(), vName.c_str(), formatCurrency(nextSt.weight).c_str());
                             }
                         }
                         ImGui::EndChild();
@@ -1544,9 +1536,9 @@ int main() {
                                 out << "================================================================================\n\n";
                                 
                                 out << "1. SO SANH 3 MUC NGAN SACH DAU TU:\n";
-                                out << "   - Phuong an 1 (Toan bo cap kha thi): " << static_cast<int>(costAll) << " DV (" << feasibleEdgeCount << " cap - Ton kem, du thua)\n";
-                                out << "   - Phuong an 2 (Cay khung toi uu MST): " << static_cast<int>(costMST) << " DV (" << appState.mstResult.edgeIds.size() << " cap - Tiet kiem " << static_cast<int>(savedPct) << "%)\n";
-                                out << "   - Phuong an 3 (MST + Cap du phong):   " << static_cast<int>(costMSTBackup) << " DV (" << (appState.mstResult.edgeIds.size() + appState.backupResult.edgeIds.size()) << " cap - Bao ve " << appState.backupResult.edgeIds.size() << " canh)\n\n";
+                                out << "   - Phuong an 1 (Toan bo cap kha thi): " << formatCurrency(costAll) << " (" << feasibleEdgeCount << " cap - Ton kem, du thua)\n";
+                                out << "   - Phuong an 2 (Cay khung toi uu MST): " << formatCurrency(costMST) << " (" << appState.mstResult.edgeIds.size() << " cap - Tiet kiem " << static_cast<int>(savedPct) << "%)\n";
+                                out << "   - Phuong an 3 (MST + Cap du phong):   " << formatCurrency(costMSTBackup) << " (" << (appState.mstResult.edgeIds.size() + appState.backupResult.edgeIds.size()) << " cap - Bao ve " << appState.backupResult.edgeIds.size() << " canh)\n\n";
 
                                 out << "2. DANH SACH TUYEN CAP CAY KHUNG (MST THI CONG CHINH):\n";
                                 int idx = 1;
@@ -1556,7 +1548,7 @@ int main() {
                                     std::string vN = baseGraph.getNode(e.v).name;
                                     std::string mType = (e.mediaType == MediaType::FIBER) ? "Fiber" : "Copper";
                                     out << "   [" << idx++ << "] Tuyen " << uN << " - " << vN << " | Cu ly: " << static_cast<int>(e.length) 
-                                        << "m | Loai: " << mType << " | Chi phi: " << static_cast<int>(costFn(e)) << " DV\n";
+                                        << "m | Loai: " << mType << " | Chi phi: " << formatCurrency(costFn(e)) << "\n";
                                 }
 
                                 out << "\n3. DANH SACH TUYEN CAP DU PHONG (BACKUP):\n";
@@ -1567,7 +1559,7 @@ int main() {
                                     std::string vN = baseGraph.getNode(e.v).name;
                                     std::string mType = (e.mediaType == MediaType::FIBER) ? "Fiber" : "Copper";
                                     out << "   [" << idx++ << "] Tuyen " << uN << " - " << vN << " | Cu ly: " << static_cast<int>(e.length) 
-                                        << "m | Loai: " << mType << " | Chi phi: " << static_cast<int>(costFn(e)) << " DV\n";
+                                        << "m | Loai: " << mType << " | Chi phi: " << formatCurrency(costFn(e)) << "\n";
                                 }
 
                                 out << "\n4. TONG KET HA TANG XAY DUNG:\n";
@@ -1972,7 +1964,7 @@ int main() {
                     badgeBorder = sf::Color(185, 28, 28);
                     badgeTextColor = sf::Color::White;
                 } else if (appState.isMSTActive && appState.sidebarMode == 0 && appState.viewMode == 0) {
-                    // CHỈ KHI đang mở Tab Quy Hoạch Cáp (MST) ở Lớp Vật Lý mới hiển thị chi phí ĐV
+                    // CHỈ KHI đang mở Tab Quy Hoạch Cáp (MST) ở Lớp Vật Lý mới hiển thị chi phí kVNĐ
                     badgeText = "";
                     double cost = pricingModel.calculateCablingCost(edge).total;
                     bool inMST = false;
@@ -1986,17 +1978,17 @@ int main() {
                                       appState.kruskalHistory[appState.currentKruskalStep].edgeId == eId);
 
                     if (isCurrent) {
-                        badgeText = std::to_string(static_cast<int>(cost)) + " ĐV";
+                        badgeText = formatCurrency(cost);
                         badgeBg = sf::Color(254, 249, 195);
                         badgeBorder = sf::Color(234, 179, 8);
                         badgeTextColor = sf::Color(161, 98, 7);
                     } else if (inMST) {
-                        badgeText = std::to_string(static_cast<int>(cost)) + " ĐV";
+                        badgeText = formatCurrency(cost);
                         badgeBg = sf::Color(236, 253, 245);
                         badgeBorder = sf::Color(34, 197, 94);
                         badgeTextColor = sf::Color(21, 128, 61);
                     } else if (isBackup && appState.mstResult.connected && appState.currentKruskalStep >= static_cast<int>(appState.kruskalHistory.size())) {
-                        badgeText = std::to_string(static_cast<int>(cost)) + " ĐV";
+                        badgeText = formatCurrency(cost);
                         badgeBg = sf::Color(239, 246, 255);
                         badgeBorder = sf::Color(37, 99, 235);
                         badgeTextColor = sf::Color(29, 78, 216);
