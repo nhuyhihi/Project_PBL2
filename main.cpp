@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include <iostream>
 #include <vector>
 #include <string>
 #include <cmath>
@@ -82,6 +82,7 @@ struct DeliveryRipple {
 
 struct AppState {
     bool isMSTActive = false;
+    bool hasRunMST = false;
     bool isScenarioActive = false;
     bool isCutModeActive = false;
     bool isRestoreModeActive = false;
@@ -138,6 +139,7 @@ struct AppState {
 
     void reset(int defaultNodeId = 0) {
         isMSTActive = false;
+        hasRunMST = false;
         isScenarioActive = false;
         isCutModeActive = false;
         isRestoreModeActive = false;
@@ -191,10 +193,7 @@ Packet buildCurrentPacket(const AppState& appState, const std::vector<Packet>& p
     return pkt;
 }
 
-// Mạng chính = thành phần liên thông LỚN NHẤT, chỉ tính cáp đã lắp (onlyBuilt) và đang hoạt động
-// (Sử dụng module Connectivity). Trạm không thuộc mạng chính là trạm bị cô lập.
-// Không lấy cố định 1 trạm làm gốc: nếu chính trạm gốc bị cắt rời thì sẽ báo ngược.
-// Bằng nhau về kích thước thì chọn phần chứa trạm có id nhỏ nhất (connectedComponents đã sắp sẵn).
+// Trả về thành phần liên thông lớn nhất gồm các cáp đang hoạt động (trạm ngoài tập này bị cô lập)
 std::unordered_set<int> mainNetworkNodes(const Graph& g, bool onlyBuilt) {
     std::unordered_set<int> best;
     for (const auto& comp : Connectivity::connectedComponents(g, onlyBuilt)) {
@@ -231,9 +230,7 @@ std::string formatNodePath(const Graph& g, const std::vector<int>& nodes) {
     return out;
 }
 
-// ============================================================================
-// HÌNH HỌC & ĐƯỜNG CONG TÁCH CÁP CHÉO (BEZIER ARCS & HITBOX AN TOÀN ĐỘNG)
-// ============================================================================
+// Hình học đường cong Bézier tách cáp chéo và kiểm tra hitbox
 float distancePointToSegment(const sf::Vector2f& p, const sf::Vector2f& a, const sf::Vector2f& b) {
     const float l2 = (b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y);
     if (l2 == 0.0f) {
@@ -283,9 +280,7 @@ float getDistanceToEdge(const sf::Vector2f& clickPos, bool isCurved,
     return distancePointToSegment(clickPos, p1, p2);
 }
 
-// ============================================================================
-// HÀM TIỆN ÍCH VẼ VECTOR ĐỒ HỌA SFML
-// ============================================================================
+// Hàm tiện ích vẽ đồ họa SFML
 void drawThickLine(sf::RenderWindow& win, const sf::Vector2f& p1, const sf::Vector2f& p2, sf::Color color, float thickness) {
     sf::Vector2f dir = p2 - p1;
     float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
@@ -341,9 +336,7 @@ void drawLinkBadge(sf::RenderWindow& win, const sf::Font& font, const sf::Vector
     win.draw(txt);
 }
 
-// ============================================================================
-// HÀM TIỆN ÍCH TOP TOOLBAR: UNIFIED STATE PATTERN
-// ============================================================================
+// Nút bật/tắt trạng thái trên thanh công cụ
 bool DrawToggleButton(const char* label, bool isActive, const ImVec4& baseColor, const ImVec2& size = ImVec2(0, 0)) {
     if (isActive) {
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(baseColor.x * 0.70f, baseColor.y * 0.70f, baseColor.z * 0.70f, 1.0f));
@@ -369,9 +362,7 @@ bool DrawToggleButton(const char* label, bool isActive, const ImVec4& baseColor,
     return clicked;
 }
 
-// ============================================================================
-// CLEAN LIGHT THEME
-// ============================================================================
+// Giao diện sáng ImGui
 void ApplyCleanLightTheme() {
     ImGuiStyle& style = ImGui::GetStyle();
     ImGui::StyleColorsLight(&style);
@@ -420,10 +411,7 @@ void ApplyCleanLightTheme() {
     colors[ImGuiCol_Separator]            = ImVec4(0.84f, 0.87f, 0.90f, 1.00f);
 }
 
-// ============================================================================
-// HÀM KHỞI TẠO LỊCH SỬ DUYỆT CẠNH KRUSKAL & CHỌN CÁP DỰ PHÒNG BACKUP
-// (Tái sử dụng 100% buildMST & selectBackupLinks của Backend, tuân thủ DRY)
-// ============================================================================
+// Khởi tạo lịch sử duyệt cạnh Kruskal và danh sách cáp dự phòng
 static std::string formatCurrency(double cost) {
     long long c = static_cast<long long>(std::round(cost));
     std::string s = std::to_string(c);
@@ -482,9 +470,7 @@ void recordKruskalSteps(Graph& g, const CostModel& pricingModel, AppState& appSt
     }
 }
 
-// ============================================================================
-// CẬP NHẬT ĐỊNH TUYẾN DIJKSTRA VỚI GÓI TIN HIỆN TẠI (READ-ONLY QUA EVALUATEPACKET)
-// ============================================================================
+// Cập nhật lộ trình định tuyến Dijkstra cho gói tin hiện tại
 void updateRoutingPath(const Graph& g, const std::vector<Packet>& packets, AppState& appState) {
     appState.dropByMtu = false;
     appState.dropMtu = 0;
@@ -500,8 +486,7 @@ void updateRoutingPath(const Graph& g, const std::vector<Packet>& packets, AppSt
     // Chạy Dijkstra với onlyBuiltLinks (mặc định true: chỉ đi trên cáp đã lắp đặt MST + Backup)
     appState.currentPath = dijkstra(g, appState.selectedSrcNode, appState.selectedDstNode, qosPkt, appState.onlyBuiltLinks);
 
-    // Không có đường nhưng 2 trạm vẫn liên thông và gói tin bật DF => bị chặn bởi MTU
-    // (RoutingCost trả INF cho cáp có MTU nhỏ hơn gói DF). Lấy MTU nhỏ nhất trên đường còn lại để báo.
+    // Nếu vẫn liên thông nhưng gói DF vượt MTU thì xác định MTU nhỏ nhất để báo lỗi
     if (!appState.currentPath.reachable && !qosPkt.canFragment &&
         Connectivity::isConnected(g, appState.selectedSrcNode, appState.selectedDstNode, appState.onlyBuiltLinks)) {
         appState.dropByMtu = true;
@@ -576,11 +561,7 @@ void applyScenarioToStep(Graph& workingGraph, const Graph& baseGraph, const Cost
             }
         }
     }
-    // Hạ tầng (MST + Backup) đã quy hoạch một lần trên baseGraph, sự kiện mạng KHÔNG làm thay đổi.
-    // Vì vậy không tính lại Kruskal ở đây (nếu tính lại, bảng ngân sách và lịch sử Kruskal sẽ đổi theo
-    // cáp đứt, như thể vừa lắp thêm cáp mới).
-
-    // Tự động đảm bảo trạm Đích được chọn khi chạy kịch bản
+    // Giữ nguyên quy hoạch hạ tầng ban đầu trên baseGraph khi chạy sự kiện kịch bản
     if (appState.selectedDstNode == -1) {
         if (!packets.empty()) {
             appState.selectedSrcNode = packets.front().source;
@@ -607,17 +588,13 @@ void applyScenarioToStep(Graph& workingGraph, const Graph& baseGraph, const Cost
     }
 }
 
-// ============================================================================
-// CHƯƠNG TRÌNH CHÍNH
-// ============================================================================
+// Chương trình chính
 int main() {
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
 #endif
-    // ------------------------------------------------------------------------
-    // 1. NẠP DỮ LIỆU BACKEND & QUY HOẠCH HẠ TẦNG CƠ SỞ (MST + BACKUP)
-    // ------------------------------------------------------------------------
+    // 1. Nạp dữ liệu và quy hoạch hạ tầng cơ sở (MST + Dự phòng)
     Graph baseGraph;
     if (!IOManager::loadNodes("data/nodes.txt", baseGraph) ||
         !IOManager::loadEdges("data/edges.txt", baseGraph)) {
@@ -641,6 +618,7 @@ int main() {
     int defaultNodeId = workingGraph.nodeIds().empty() ? 0 : workingGraph.nodeIds().front();
     AppState appState;
     appState.reset(defaultNodeId);
+    appState.statusMessage = "Sơ đồ khảo sát ban đầu. Bấm 'Chạy MST' để quy hoạch cáp hoặc chọn 'Lớp Logic'.";
 
     // Tự động kiểm tra nếu có file lưu trạng thái mạng trước đó (data/saved_network.txt)
     std::ifstream savedIn("data/saved_network.txt");
@@ -661,6 +639,7 @@ int main() {
         }
         savedIn.close();
         if (restoredCount > 0) {
+            appState.hasRunMST = true;
             appState.statusMessage = "[Tự Động Nạp]: Đã khôi phục trạng thái mạng cũ từ data/saved_network.txt (" + 
                                      std::to_string(restoredCount) + " tuyến cáp).";
         }
@@ -810,9 +789,7 @@ int main() {
     };
     recomputeLayout();
 
-    // ------------------------------------------------------------------------
-    // 3. GAME LOOP TUẦN TỰ (60 FPS)
-    // ------------------------------------------------------------------------
+    // 3. Vòng lặp giao diện chính (60 FPS)
     while (window.isOpen()) {
         sf::Vector2i mousePixel = sf::Mouse::getPosition(window);
         sf::Vector2f mousePos(static_cast<float>(mousePixel.x), static_cast<float>(mousePixel.y));
@@ -1064,9 +1041,7 @@ int main() {
             }
         }
 
-        // ====================================================================
-        // MODULE 1: TOP TOOLBAR (Y: 0 -> 42px)
-        // ====================================================================
+        // Module 1: Thanh công cụ trên cùng
         ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
         ImGui::SetNextWindowSize(ImVec2(static_cast<float>(WINDOW_WIDTH), TOP_BAR_HEIGHT));
         ImGuiWindowFlags toolbarFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
@@ -1096,6 +1071,7 @@ int main() {
             if (DrawToggleButton("Chạy MST", appState.isMSTActive, ImVec4(0.12f, 0.46f, 0.85f, 1.0f))) {
                 appState.isMSTActive = !appState.isMSTActive;
                 if (appState.isMSTActive) {
+                    appState.hasRunMST = true;
                     appState.viewMode = 0; // TỰ ĐỘNG CHUYỂN SANG LỚP VẬT LÝ ĐỂ HIỂN THỊ RÕ CÂY KHUNG
                     appState.isScenarioActive = false;
                     appState.isSidebarOpen = true;
@@ -1105,7 +1081,18 @@ int main() {
                     // Hiển thị quy hoạch gốc tính trên baseGraph, không ghi đè cờ isBuilt của workingGraph
                     recordKruskalSteps(baseGraph, pricingModel, appState, /*updateGraphBuildFlags=*/false);
                     appState.currentKruskalStep = static_cast<int>(appState.kruskalHistory.size());
-                    appState.statusMessage = "Chế độ MST: Đã tính toán cây khung và cáp dự phòng.";
+                    bool hasDownLink = false;
+                    for (int eId : workingGraph.edgeIds()) {
+                        if (!workingGraph.getEdge(eId).isUp) {
+                            hasDownLink = true;
+                            break;
+                        }
+                    }
+                    if (hasDownLink) {
+                        appState.statusMessage = "Đang xem quy hoạch hạ tầng gốc. Cáp đứt khi vận hành không làm thay đổi cây khung ban đầu.";
+                    } else {
+                        appState.statusMessage = "Chế độ MST: Đã tính toán cây khung và cáp dự phòng.";
+                    }
                 } else {
                     appState.statusMessage = "Đã tắt chế độ xem cây khung MST.";
                 }
@@ -1222,9 +1209,7 @@ int main() {
         ImGui::End();
         ImGui::PopStyleVar();
 
-        // ====================================================================
-        // THẺ NỔI ĐỊNH TUYẾN DẠNG PILL (CHẾ ĐỘ LỚP LOGIC - ROUTING CARD)
-        // ====================================================================
+        // Thẻ nổi chọn nguồn/đích và thông số định tuyến ở Lớp Logic
         if (appState.viewMode == 1) {
             float pillWidth = appState.isSidebarOpen ? (WINDOW_WIDTH - DRAWER_DEFAULT_WIDTH - 24.0f) : 855.0f;
             ImGui::SetNextWindowPos(ImVec2(16.0f, TOP_BAR_HEIGHT + 6.0f), ImGuiCond_Always);
@@ -1369,9 +1354,7 @@ int main() {
             ImGui::PopStyleColor(2);
         }
 
-        // ====================================================================
-        // MODULE 3: SIDEBAR RESIZABLE DRAWER
-        // ====================================================================
+        // Module 3: Ngăn kéo bảng dữ liệu bên phải
         if (appState.isSidebarOpen) {
             ImGui::SetNextWindowPos(ImVec2(WINDOW_WIDTH - DRAWER_DEFAULT_WIDTH, TOP_BAR_HEIGHT), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSizeConstraints(ImVec2(DRAWER_MIN_WIDTH, DRAWER_HEIGHT), ImVec2(DRAWER_MAX_WIDTH, DRAWER_HEIGHT));
@@ -1388,6 +1371,7 @@ int main() {
                     if (ImGui::BeginTabItem(" Quy Hoạch Cáp ", nullptr, tab1Flags)) {
                         appState.sidebarMode = 0;
                         appState.isMSTActive = true;
+                        appState.hasRunMST = true;
                         appState.isScenarioActive = false;
 
                         // 1. BẢNG SO SÁNH 3 MỨC NGÂN SÁCH
@@ -1475,6 +1459,19 @@ int main() {
                         if (!appState.mstResult.connected) {
                             ImGui::Spacing();
                             ImGui::TextColored(ImVec4(0.85f, 0.2f, 0.2f, 1.0f), "[! CẢNH BÁO] Đồ thị bị chia cắt! Không thể tạo MST.");
+                        }
+
+                        // Ghi chú khi đang có cáp đứt ở tầng vận hành
+                        bool hasDownLinkInTab = false;
+                        for (int eId : workingGraph.edgeIds()) {
+                            if (!workingGraph.getEdge(eId).isUp) {
+                                hasDownLinkInTab = true;
+                                break;
+                            }
+                        }
+                        if (hasDownLinkInTab) {
+                            ImGui::Spacing();
+                            ImGui::TextColored(ImVec4(0.85f, 0.42f, 0.05f, 1.0f), "* Đang có cáp đứt khi vận hành; bảng trên là quy hoạch gốc.");
                         }
 
                         // 2. THUẬT TOÁN KRUSKAL TỪNG BƯỚC
@@ -1679,9 +1676,7 @@ int main() {
             ImGui::PopStyleColor();
         }
 
-        // ====================================================================
-        // MODULE 2: NATIVE HOVER TOOLTIP (READ-ONLY QUA SIMULATOR::EVALUATEPACKET)
-        // ====================================================================
+        // Module 2: Tooltip bảng định tuyến khi di chuột qua trạm
         if (appState.hoveredNodeId != -1 && !ImGui::GetIO().WantCaptureMouse) {
             std::string hName = workingGraph.getNode(appState.hoveredNodeId).name;
             if (hName.empty()) hName = "Node " + std::to_string(appState.hoveredNodeId);
@@ -1741,9 +1736,7 @@ int main() {
             ImGui::EndTooltip();
         }
 
-        // ====================================================================
-        // STATUS BAR (Y: 692 -> 720px)
-        // ====================================================================
+        // Thanh trạng thái dưới đáy
         ImGui::SetNextWindowPos(ImVec2(0.0f, WINDOW_HEIGHT - STATUS_BAR_HEIGHT));
         ImGui::SetNextWindowSize(ImVec2(static_cast<float>(WINDOW_WIDTH), STATUS_BAR_HEIGHT));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(14.0f, 5.0f));
@@ -1775,15 +1768,12 @@ int main() {
         ImGui::End();
         ImGui::PopStyleVar();
 
-        // ====================================================================
-        // VẼ ĐỒ THỊ MẠNG TRÊN CANVAS SFML
-        // ====================================================================
+        // Vẽ đồ thị mạng trên Canvas SFML
         window.clear(sf::Color(248, 250, 252));
 
-        // 1. LƯỚI CHẤM KỸ THUẬT
         window.draw(gridDots);
 
-        // 2. VẼ TOÀN BỘ CÁP QUANG (EDGES)
+        // Vẽ các tuyến cáp
         for (int eId : workingGraph.edgeIds()) {
             const Edge& edge = workingGraph.getEdge(eId);
             if (!nodePositions.count(edge.u) || !nodePositions.count(edge.v)) continue;
@@ -1809,11 +1799,9 @@ int main() {
                 }
             }
 
-            // LỚP 1: HÀO QUANG ĐỊNH TUYẾN (ROUTING GLOW HALO)
-            // Nếu cạnh này thuộc lộ trình di chuyển của gói tin hiện tại (và cáp chưa đứt):
-            // Vẽ dải hào quang màu cam phát sáng bao quanh sợi cáp trước, để lộ trình luôn được lưu lại rõ nét!
-            if (inRoutingPath && edge.isUp && appState.currentPath.reachable) {
-                sf::Color haloColor(245, 140, 20, 150); // Cam rực rỡ, bán trong suốt
+            // Hào quang cam đánh dấu lộ trình định tuyến (chỉ hiển thị ở Lớp Logic)
+            if (appState.viewMode == 1 && inRoutingPath && edge.isUp && appState.currentPath.reachable) {
+                sf::Color haloColor(245, 140, 20, 150);
                 float haloThickness = 8.5f;
                 if (isPairMatch(edge.u, edge.v, curvedDiagU, curvedDiagV)) {
                     drawCurvedCable(window, p1, diagCtrl, p2, haloColor, haloThickness);
@@ -1822,12 +1810,7 @@ int main() {
                 }
             }
 
-            // LỚP 2: LÕI CÁP VẬT LÝ (CABLE CORE)
-            // Lõi bên trong luôn giữ nguyên màu sắc bản chất hạ tầng:
-            // - Cây khung MST: Xanh lá cây đậm (#23AA4B)
-            // - Cáp dự phòng: Xanh dương (#2563EB)
-            // - Cáp đứt: Đỏ rực (#EF4444)
-            // - Cáp chưa lắp đặt: Xám nhạt mờ
+            // Màu lõi cáp theo trạng thái: đỏ (đứt), xanh lá (MST), xanh dương (dự phòng), xám (chưa lắp)
             sf::Color edgeColor(180, 190, 202, 140);
             float thickness = 2.0f;
 
@@ -1836,6 +1819,10 @@ int main() {
             if (!edge.isUp) {
                 edgeColor = sf::Color(239, 68, 68, 255); // Cáp bị đứt: Đỏ rực
                 thickness = 2.8f;
+            } else if (appState.viewMode == 0 && !appState.hasRunMST && !appState.isMSTActive) {
+                // Trạng thái khảo sát ban đầu trước khi bấm Chạy MST: hiển thị đồng nhất các tuyến tiềm năng
+                edgeColor = sf::Color(100, 116, 139, 190);
+                thickness = 2.4f;
             } else if (appState.isMSTActive && appState.sidebarMode == 0) {
                 // ĐANG XEM KRUSKAL TỪNG BƯỚC TRONG TAB QUY HOẠCH MST
                 bool inMST = false;
@@ -1953,6 +1940,11 @@ int main() {
                     badgeBg = sf::Color(239, 68, 68);
                     badgeBorder = sf::Color(185, 28, 28);
                     badgeTextColor = sf::Color::White;
+                } else if (appState.viewMode == 0 && !appState.hasRunMST && !appState.isMSTActive) {
+                    badgeText = std::to_string(static_cast<int>(edge.length)) + "m";
+                    badgeBg = sf::Color(255, 255, 255, 235);
+                    badgeBorder = sf::Color(148, 163, 184);
+                    badgeTextColor = sf::Color(51, 65, 85);
                 } else if (appState.isMSTActive && appState.sidebarMode == 0 && appState.viewMode == 0) {
                     // CHỈ KHI đang mở Tab Quy Hoạch Cáp (MST) ở Lớp Vật Lý mới hiển thị chi phí kVNĐ
                     badgeText = "";
@@ -1984,8 +1976,7 @@ int main() {
                         badgeTextColor = sf::Color(29, 78, 216);
                     }
                 } else {
-                    // TẤT CẢ CÁC TRƯỜNG HỢP CÒN LẠI: KỊCH BẢN, ĐỊNH TUYẾN, HOẶC XEM SƠ ĐỒ CHUNG
-                    // LUÔN HIỂN THỊ ĐƠN VỊ MÉT (m) KÈM THÔNG SỐ TẢI / TRỄ NẾU CÓ
+                    // Các chế độ khác hiển thị chiều dài (m) kèm tải hoặc độ trễ hàng đợi
                     if (!edge.isBuilt || !Validation::isStaticFeasible(edge)) {
                         badgeText = std::to_string(static_cast<int>(edge.length)) + "m (Chưa lắp)";
                         badgeBg = sf::Color(248, 250, 252, 220);
@@ -2000,7 +1991,7 @@ int main() {
                             badgeTextColor = sf::Color(185, 28, 28);
                         } else {
                             badgeBg = sf::Color(254, 249, 195);
-                            badgeBorder = inRoutingPath ? sf::Color(245, 158, 11) : sf::Color(202, 138, 4);
+                            badgeBorder = (appState.viewMode == 1 && inRoutingPath) ? sf::Color(245, 158, 11) : sf::Color(202, 138, 4);
                             badgeTextColor = sf::Color(161, 98, 7);
                         }
                     } else if (edge.mediaType == MediaType::FIBER && std::abs(edge.queueDelay - 0.001) > 1e-6) {
@@ -2009,11 +2000,11 @@ int main() {
                                       static_cast<int>(edge.length), edge.queueDelay * 1000.0);
                         badgeText = qBuf;
                         badgeBg = sf::Color(243, 232, 255);
-                        badgeBorder = inRoutingPath ? sf::Color(245, 158, 11) : sf::Color(147, 51, 234);
+                        badgeBorder = (appState.viewMode == 1 && inRoutingPath) ? sf::Color(245, 158, 11) : sf::Color(147, 51, 234);
                         badgeTextColor = sf::Color(107, 33, 168);
                     } else {
                         badgeText = std::to_string(static_cast<int>(edge.length)) + "m";
-                        if (inRoutingPath) {
+                        if (appState.viewMode == 1 && inRoutingPath) {
                             badgeBg = sf::Color(254, 243, 199);
                             badgeBorder = sf::Color(245, 158, 11);
                             badgeTextColor = sf::Color(180, 83, 9);

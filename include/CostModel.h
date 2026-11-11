@@ -7,14 +7,14 @@
 #include <string>
 
 struct CostBreakdown {
-    double install;     
-    double material;      // Chi phí vật tư (chiều dài * đơn giá * hệ số địa hình)
-    double equipment;     
-    double maintenance;   
-    double total;         
+    double install;
+    double material;
+    double equipment;
+    double maintenance;
+    double total;
 };
 
-// Cấu trúc lưu trạng thái bảng giá nạp từ pricing.txt (khởi tạo rỗng đồng bộ)
+// Cấu hình đơn giá nạp từ pricing.txt
 struct PricingConfig {
     double installationCost = 0.0;
     std::map<MediaType, double> unitPrice;
@@ -22,16 +22,14 @@ struct PricingConfig {
     std::map<MediaType, double> maintenanceCost;
 };
 
+// Mô hình tính chi phí lắp đặt tuyến cáp
 class CostModel {
 private:
-    PricingConfig config; // Thuộc tính private: Đảm bảo đóng gói tuyệt đối
+    PricingConfig config;
 public:
     CostModel() = default;
 
-    // Nạp cấu hình từ file text
     bool loadPricing(const std::string& filepath);
-
-    // Tính toán chi phí - Hàm const vì nó không làm thay đổi trạng thái của model
     CostBreakdown calculateCablingCost(const Edge& edge) const;
 };
 

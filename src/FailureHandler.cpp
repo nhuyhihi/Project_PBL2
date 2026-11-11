@@ -28,10 +28,7 @@ std::string edgesToString(const std::vector<int>& ids) {
 
 } // namespace
 
-// ------------------------------------------------------------
-// A5.1
-// ------------------------------------------------------------
-
+// Quản lý trạng thái cáp
 bool setLinkState(Graph& g, int edgeId, bool up) {
     if (!g.hasEdge(edgeId)) return false;
     g.getEdge(edgeId).isUp = up;
@@ -46,10 +43,7 @@ bool applyLinkEvent(Graph& g, EventType type, int edgeId) {
     }
 }
 
-// ------------------------------------------------------------
-// A5.3
-// ------------------------------------------------------------
-
+// Tái định tuyến khi đứt cáp
 const char* toString(RerouteAction a) {
     switch (a) {
         case RerouteAction::KEEP:     return "KEEP";
@@ -114,10 +108,7 @@ RerouteResult rerouteIfNeeded(const Graph& g, const PathResult& oldPath,
     return r;
 }
 
-// ------------------------------------------------------------
-// A5.4
-// ------------------------------------------------------------
-
+// Xử lý sự kiện đứt / phục hồi cáp và lập báo cáo
 FailureReport handleFailureEvent(Graph& g, int edgeId, bool up,
                                  const PathResult& oldPath,
                                  int source, int destination,
@@ -126,7 +117,7 @@ FailureReport handleFailureEvent(Graph& g, int edgeId, bool up,
     rep.edgeId  = edgeId;
     rep.oldPath = oldPath;
 
-    // 1. Apply failure + 2. Update state (ghi lại trạng thái trước / sau)
+    // 1. Cập nhật trạng thái đóng/ngắt của liên kết
     if (g.hasEdge(edgeId)) {
         const Edge& e    = g.getEdge(edgeId);
         rep.u            = e.u;
@@ -136,7 +127,7 @@ FailureReport handleFailureEvent(Graph& g, int edgeId, bool up,
         rep.linkUpAfter  = g.getEdge(edgeId).isUp;
     }
 
-    // 3. Check old path + 4. Rerun Dijkstra nếu cần
+    // 2. Kiểm tra đường cũ và tái định tuyến nếu cần
     if (rep.applied) {
         rep.reroute = rerouteIfNeeded(g, oldPath, source, destination, weight, onlyBuilt);
     } else {
@@ -145,14 +136,13 @@ FailureReport handleFailureEvent(Graph& g, int edgeId, bool up,
         rep.reroute.reason = "Edge #" + std::to_string(edgeId) + " khong ton tai, bo qua su kien";
     }
 
-    // 5. Check connectivity
+    // 3. Kiểm tra tính liên thông và tỷ lệ cặp nút liên lạc
     rep.sourceDestConnected = Connectivity::isConnected(g, source, destination, onlyBuilt);
     auto comps              = Connectivity::connectedComponents(g, onlyBuilt);
     rep.componentCount      = static_cast<int>(comps.size());
     rep.networkConnected    = rep.componentCount <= 1;
     rep.pairs               = Connectivity::pairConnectivity(g, onlyBuilt);
 
-    // 6. Report: trả về rep, in bằng printFailureReport()
     return rep;
 }
 

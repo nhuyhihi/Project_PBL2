@@ -8,7 +8,7 @@
 #include "Packet.h"
 #include "PathResult.h"
 
-// Kết quả mô phỏng truyền gói tin
+// Kết quả mô phỏng truyền gói tin trên lộ trình
 struct SimulationResult {
     bool success = true;
     double totalDelay = 0.0;
@@ -16,21 +16,20 @@ struct SimulationResult {
     int fragmentCount = 1;
 };
 
+// Bộ điều phối mô phỏng sự kiện mạng và đánh giá truyền gói tin
 class Simulator {
 public:
-    // Áp dụng sự kiện vào đồ thị
     static void applyEvent(Graph& graph, const ScenarioEvent& event);
 
-    // Đánh giá kết quả truyền gói tin (Read-Only, không làm thay đổi trạng thái tải của Graph)
+    // Đánh giá truyền gói tin ở chế độ chỉ đọc (không thay đổi currentLoad)
     static SimulationResult evaluatePacket(const Packet& packet, const PathResult& path, const Graph& graph);
 
-    // Gửi gói tin thực tế (Tính độ trễ qua evaluatePacket rồi cập nhật tải trên Graph)
+    // Gửi gói tin thực tế và cập nhật tải lên đồ thị
     static SimulationResult sendPacket(const Packet& packet, const PathResult& path, Graph& graph);
 
-    // Cập nhật trạng thái tải sau khi gửi
     static void updateNetworkState(Edge& edge, double dTrans);
 
-    // Điều phối toàn bộ một kịch bản sự kiện & Logging ra file .txt
+    // Chạy toàn bộ kịch bản theo các mốc thời gian và xuất log nếu có đường dẫn
     static void runScenarioSimulation(Graph& graph,
                                      const std::vector<Packet>& packets,
                                      const Scenario& scenario,

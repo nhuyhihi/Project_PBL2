@@ -14,15 +14,11 @@ double congestionPenalty(double load) {
 }
 
 double calculateRoutingCost(const Packet& packet, const Edge& edge) {
-    // Day dang dut -> khong the di qua
     if (!edge.isUp) return Config::INF;
 
-    // Kiem tra phan manh truoc: neu la goi DF (khong cho phan manh) ma
-    // vuot qua MTU thi khong the di qua day nay duoc (giong DelayModel).
     int fragments = DelayModel::calcFragmentCount(packet.sizeBytes, edge.mtu, packet.canFragment);
     if (fragments == 0) return Config::INF;
 
-    // Chon bo trong so QoS theo loai goi tin
     const Config::QoSWeight* w = nullptr;
     switch (packet.type) {
         case PacketType::REAL_TIME: w = &Config::QOS_WEIGHT_REAL_TIME; break;
@@ -31,18 +27,13 @@ double calculateRoutingCost(const Packet& packet, const Edge& edge) {
         default:                    w = &Config::QOS_WEIGHT_CONTROL;   break;
     }
 
-    // Tai su dung dung cac cong thuc thanh phan da co san o DelayModel
-    // de khong viet trung logic - chi khac o cho nhan them
-    // trong so QoS va he so tac nghen khi cong lai thanh 1 "chi phi".
+    // Tổng hợp các thành phần độ trễ kèm trọng số QoS và phạt phân mảnh
     double dTrans = DelayModel::calcTransmissionDelay(packet.sizeBytes, edge.bandwidthMbps);
     double propSpeed = (edge.mediaType == MediaType::WIRELESS)
                             ? Config::SPEED_OF_LIGHT_AIR
                             : Config::SPEED_OF_LIGHT_FIBER;
     double dProp = DelayModel::calcPropagationDelay(edge.length, propSpeed);
     double dQueue = edge.queueDelay * congestionPenalty(edge.currentLoad);
-
-    // Duoc dung ngay o day (nhan vao dQueue) - cang tai nhieu,
-    // dQueue cang bi khuech dai manh, Dijkstra se tu dong tranh duong nay.
     double fragmentPenalty = (fragments > 1)
                                   ? (fragments - 1) * Config::FRAGMENT_PENALTY_PER_EXTRA
                                   : 0.0;

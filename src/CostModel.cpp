@@ -60,15 +60,12 @@ bool CostModel::loadPricing(const std::string& filepath) {
 
 CostBreakdown CostModel::calculateCablingCost(const Edge& edge) const {
     CostBreakdown breakdown;
-    
-    // Ràng buộc: "dùng INF cho cạnh không đi được"
     if (!edge.isUp) {
         breakdown.install = breakdown.material = breakdown.equipment = breakdown.maintenance = 0.0;
         breakdown.total = Config::INF;
         return breakdown;
     }
 
-    // 1. Kiểm tra loại cáp đã được định giá trong pricing.txt chưa
     if (config.unitPrice.count(edge.mediaType) == 0 ||
         config.equipmentCost.count(edge.mediaType) == 0 ||
         config.maintenanceCost.count(edge.mediaType) == 0) {
@@ -77,21 +74,12 @@ CostBreakdown CostModel::calculateCablingCost(const Edge& edge) const {
         return breakdown;
     }
 
-    // 2. Chi phí lắp đặt cơ bản
-    breakdown.install = config.installationCost;
-    
-    // 3. Chi phí vật tư cáp = Chiều dài * Đơn giá từ pricing.txt * Hệ số địa hình
     double currentUnitPrice = config.unitPrice.at(edge.mediaType);
-    breakdown.material = edge.length * currentUnitPrice * edge.terrainFactor;
-    
-    // 4. Phí thiết bị cổng từ pricing.txt
-    breakdown.equipment = config.equipmentCost.at(edge.mediaType);
-    
-    // 5. Phí bảo trì định kỳ từ pricing.txt
+    breakdown.install     = config.installationCost;
+    breakdown.material    = edge.length * currentUnitPrice * edge.terrainFactor;
+    breakdown.equipment   = config.equipmentCost.at(edge.mediaType);
     breakdown.maintenance = config.maintenanceCost.at(edge.mediaType);
-    
-    // 6. Tổng tất cả các chi phí
-    breakdown.total = breakdown.install + breakdown.material + breakdown.equipment + breakdown.maintenance;
-    
+    breakdown.total       = breakdown.install + breakdown.material + breakdown.equipment + breakdown.maintenance;
+
     return breakdown;
 }

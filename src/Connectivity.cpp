@@ -14,8 +14,7 @@ namespace {
 
 using EdgeFilter = std::function<bool(const Edge&)>;
 
-// BFS dùng chung cho mọi hàm trong file: chỉ đi qua các dây mà filter cho phép.
-// visited được đánh dấu cho mọi node tới được; trả về danh sách node đó (sắp tăng).
+// Duyệt BFS dùng chung qua các cạnh thỏa điều kiện canUse
 std::vector<int> bfs(const Graph& g, int source, const EdgeFilter& canUse,
                      std::unordered_set<int>& visited) {
     std::vector<int> reached;
@@ -69,10 +68,7 @@ PairConnectivity pairsFromComponents(const std::vector<std::vector<int>>& comps,
 
 } // namespace
 
-// ------------------------------------------------------------
-// A5.2
-// ------------------------------------------------------------
-
+// Kiểm tra tính liên thông
 bool isEdgeUsable(const Edge& e, bool onlyBuilt) {
     if (!e.isUp) return false;
     if (onlyBuilt && !e.isBuilt) return false;
@@ -101,10 +97,7 @@ std::vector<std::vector<int>> connectedComponents(const Graph& g, bool onlyBuilt
     return componentsWith(g, [onlyBuilt](const Edge& e) { return isEdgeUsable(e, onlyBuilt); });
 }
 
-// ------------------------------------------------------------
-// A5.5
-// ------------------------------------------------------------
-
+// Thống kê chỉ số chịu lỗi
 PairConnectivity pairConnectivity(const Graph& g, bool onlyBuilt) {
     return pairsFromComponents(connectedComponents(g, onlyBuilt), g.V());
 }

@@ -15,9 +15,7 @@ const char* toString(RejectReason r) {
     return "?";
 }
 
-// ------------------------------------------------------------
-// Sắp xếp: rẻ trước; bằng nhau thì id nhỏ trước
-// ------------------------------------------------------------
+// Sắp xếp cạnh theo chi phí tăng dần (ưu tiên id nhỏ hơn nếu bằng nhau)
 bool compareEdges(const Edge& a, const Edge& b, const CostFn& cost) {
     const double ca = cost(a);
     const double cb = cost(b);
@@ -26,17 +24,15 @@ bool compareEdges(const Edge& a, const Edge& b, const CostFn& cost) {
 }
 
 RejectReason checkEdge(const Graph& g, const Edge& e, DSU& dsu) {
-    if (!e.isUp) return RejectReason::LINK_DOWN;                    // dây đang hỏng, không thể lắp
-    if (!Validation::isStaticFeasible(e)) return RejectReason::TOO_LONG; // vượt độ dài tối đa của loại cáp
-    if (dsu.connected(e.u, e.v)) return RejectReason::CYCLE;         // đã có đường u~v, thêm nữa thành chu trình
+    if (!e.isUp) return RejectReason::LINK_DOWN;
+    if (!Validation::isStaticFeasible(e)) return RejectReason::TOO_LONG;
+    if (dsu.connected(e.u, e.v)) return RejectReason::CYCLE;
     if (!Validation::checkPortCapacity(g.getNode(e.u)) || !Validation::checkPortCapacity(g.getNode(e.v)))
-        return RejectReason::NO_PORT;                                // một đầu hết cổng
+        return RejectReason::NO_PORT;
     return RejectReason::NONE;
 }
 
-// ------------------------------------------------------------
-// Kruskal có ràng buộc
-// ------------------------------------------------------------
+// Xây dựng cây khung tối ưu có ràng buộc
 MSTResult buildMST(Graph& g, const CostFn& cost, std::vector<Rejection>* rejections) {
     g.resetBuildState();
     if (rejections) rejections->clear();
@@ -44,13 +40,11 @@ MSTResult buildMST(Graph& g, const CostFn& cost, std::vector<Rejection>* rejecti
     MSTResult result;
     DSU dsu(g.maxNodeId() + 1);
 
-    // Bước 1: sắp xếp id edge theo compareEdges
     std::vector<int> order = g.edgeIds();
     std::sort(order.begin(), order.end(), [&](int x, int y) {
         return compareEdges(g.getEdge(x), g.getEdge(y), cost);
     });
 
-    // Bước 2-3: duyệt, chọn nếu hợp lệ
     for (int id : order) {
         Edge& e = g.getEdge(id);
         RejectReason why = checkEdge(g, e, dsu);
@@ -66,17 +60,14 @@ MSTResult buildMST(Graph& g, const CostFn& cost, std::vector<Rejection>* rejecti
         result.totalCost += cost(e);
     }
 
-    // Nối hết mọi node <=> đủ V-1 cạnh (V > 0)
     result.connected = (g.V() > 0 && static_cast<int>(result.edgeIds.size()) == g.V() - 1);
     return result;
 }
 
-// ------------------------------------------------------------
-// Dây dự phòng
-// ------------------------------------------------------------
+// Chọn các tuyến cáp dự phòng ngoài cây
 namespace {
 
-// Rừng tạo từ các cạnh cây: parent/depth/comp để tìm đường u -> v trong cây
+// Chỉ mục cây khung để tìm nhanh đường nối u -> v trên cây
 struct TreeIndex {
     std::unordered_map<int, int> comp;        // thành phần chứa node
     std::unordered_map<int, int> depth;
