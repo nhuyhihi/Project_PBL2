@@ -1422,7 +1422,10 @@ int main() {
                             }
                             ImGui::TableSetColumnIndex(2);
                             if (appState.mstResult.connected) {
-                                ImGui::TextColored(ImVec4(0.12f, 0.62f, 0.28f, 1.0f), "Rẻ nhất (-%.0f%%)", savedPct);
+                                ImGui::TextColored(ImVec4(0.12f, 0.62f, 0.28f, 1.0f), "Rẻ nhất (%d cáp)", static_cast<int>(appState.mstResult.edgeIds.size()));
+                                if (ImGui::IsItemHovered()) {
+                                    ImGui::SetTooltip("Tiết kiệm %.0f%% chi phí so với phương án Toàn bộ.", savedPct);
+                                }
                             } else {
                                 ImGui::TextColored(ImVec4(0.85f, 0.2f, 0.2f, 1.0f), "Bị chia cắt");
                             }
