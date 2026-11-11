@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 #include <vector>
 #include <string>
 #include <cmath>
@@ -120,7 +120,7 @@ struct AppState {
         "basic.txt", "qos.txt", "congestion.txt", "redundancy.txt"
     };
     std::vector<std::string> scenarioNames = {
-        "1. Cơ Bản (Basic)", "2. Phân Luồng QoS", "3. Tắc Nghẽn (Congestion)", "4. Đóng Góp Dự Phòng (Redundancy)"
+        "1. Cơ Bản", "2. Phân Luồng QoS", "3. Tắc Nghẽn", "4. Đóng Góp Dự Phòng"
     };
     Scenario loadedScenario;
     int currentScenarioStep = 0;
@@ -550,14 +550,14 @@ void updateRoutingPath(const Graph& g, const std::vector<Packet>& packets, AppSt
            << std::fixed << std::setprecision(3) << appState.logicSimResult.totalDelay * 1000.0 << " ms, "
            << appState.logicSimResult.fragmentCount << " mảnh]";
         if (appState.isRerouted) {
-            ss << " [ĐÃ ĐỔI ĐƯỜNG (REROUTE) từ " << appState.previousRouteStr << "]";
+            ss << " [ĐÃ ĐỔI ĐƯỜNG từ " << appState.previousRouteStr << "]";
         }
         appState.statusMessage = ss.str();
     } else {
         if (appState.dropByMtu) {
-            std::string mtuText = appState.dropMtu > 0 ? " (" + std::to_string(appState.dropMtu) + "B)" : "";
+            std::string mtuText = appState.dropMtu > 0 ? " " + std::to_string(appState.dropMtu) + "B" : "";
             appState.statusMessage = "DROP [DF_BLOCKED_BY_MTU]: Gói tin " + std::to_string(qosPkt.sizeBytes) +
-                                     "B vượt quá MTU" + mtuText + " nhưng bật cờ DF (Không cho phân mảnh)!";
+                                     "B vượt quá MTU" + mtuText + " nhưng cấm phân mảnh!";
         } else {
             appState.statusMessage = "DROP [UNREACHABLE]: Không còn đường đi hợp lệ từ " + srcName + " đến " + dstName + "!";
         }
@@ -678,7 +678,6 @@ int main() {
         nodeLabels.push_back(n.empty() ? ("Node " + std::to_string(id)) : n);
     }
 
-    // Tạo danh sách mẫu gói tin động từ vector<Packet> nạp từ data/packets.txt
     std::vector<std::string> packetPresetLabels;
     for (const Packet& p : packets) {
         std::string tStr = EnumUtils::toString(p.type);
@@ -693,9 +692,6 @@ int main() {
         packetPresetLabels.push_back("Mặc định 1500B | REAL_TIME | UDP");
     }
 
-    // ------------------------------------------------------------------------
-    // 2. KHỞI TẠO CỬA SỔ SFML & IMGUI-SFML
-    // ------------------------------------------------------------------------
     sf::ContextSettings settings;
     settings.antiAliasingLevel = 8;
 
@@ -741,9 +737,6 @@ int main() {
 
     sf::Clock deltaClock;
 
-    // ------------------------------------------------------------------------
-    // LƯỚI CHẤM KỸ THUẬT (GRID DOTS)
-    // ------------------------------------------------------------------------
     sf::VertexArray gridDots(sf::PrimitiveType::Points);
     constexpr float GRID_STEP = 28.0f;
     for (float gx = 20.0f; gx < WINDOW_WIDTH - 20.0f; gx += GRID_STEP) {
@@ -752,9 +745,6 @@ int main() {
         }
     }
 
-    // ------------------------------------------------------------------------
-    // BỐ TRÍ TỌA ĐỘ MẠNG 2 TẦNG & NHẬN DIỆN ĐƯỜNG CHÉO AN TOÀN ĐỘNG
-    // ------------------------------------------------------------------------
     std::unordered_map<int, sf::Vector2f> nodePositions;
     int curvedDiagU = -1, curvedDiagV = -1;
     int straightDiagU = -1, straightDiagV = -1;
@@ -890,7 +880,7 @@ int main() {
                                 appState.statusMessage = "[Khôi Phục]: Đã nối lại cáp " + uName + "-" + vName + ". Tuyến cáp đã hoạt động bình thường!";
                             }
                         } else if (hitUnbuilt) {
-                            appState.statusMessage = "[Từ chối] Tuyến cáp chưa được thi công lắp đặt (hoặc vượt cự ly cho phép), không thể cắt/nối!";
+                            appState.statusMessage = "[Từ chối] Tuyến cáp chưa được thi công lắp đặt, không thể cắt/nối!";
                         } else {
                             if (appState.isRestoreModeActive) {
                                 appState.statusMessage = "Không bấm trúng cáp đã lắp nào. Đã thoát chế độ Khôi Phục Cáp.";
@@ -989,10 +979,10 @@ int main() {
                         pkt.currentHopIndex = 0;
                         pkt.progress = 0.0f;
                         std::string uName = workingGraph.getNode(curU).name.empty() ? std::to_string(curU) : workingGraph.getNode(curU).name;
-                        appState.statusMessage = "Cáp đang truyền bị cắt! Gói tin tự động thu hồi về " + uName + " và chuyển hướng (Reroute)!";
+                        appState.statusMessage = "Cáp đang truyền bị cắt! Gói tin tự động thu hồi về " + uName + " và chuyển hướng!";
                     } else {
                         pkt.isBlocked = true;
-                        appState.statusMessage = "DROP: Cáp đang truyền bị cắt đứt và không còn đường thay thế (Unreachable)!";
+                        appState.statusMessage = "DROP: Cáp đang truyền bị cắt đứt và không còn đường thay thế!";
                         continue;
                     }
                 }
@@ -1025,10 +1015,10 @@ int main() {
                             pkt.currentHopIndex = 0;
                             pkt.progress = 0.0f;
                             std::string uName = workingGraph.getNode(u).name.empty() ? std::to_string(u) : workingGraph.getNode(u).name;
-                            appState.statusMessage = "Cáp đứt phía trước! Tự động chuyển hướng (Reroute) từ trạm " + uName;
+                            appState.statusMessage = "Cáp đứt phía trước! Tự động chuyển hướng từ trạm " + uName;
                         } else {
                             pkt.isBlocked = true;
-                            appState.statusMessage = "DROP: Tuyến phía trước bị đứt và không có đường thay thế (Unreachable)!";
+                            appState.statusMessage = "DROP: Tuyến phía trước bị đứt và không có đường thay thế!";
                         }
                     }
                 }
@@ -1089,11 +1079,11 @@ int main() {
             ImGui::TextColored(ImVec4(0.2f, 0.4f, 0.7f, 1.0f), "CHẾ ĐỘ:");
             ImGui::SameLine(0, 8.0f);
 
-            if (ImGui::RadioButton("Lớp Vật Lý (MST)", &appState.viewMode, 0)) {
+            if (ImGui::RadioButton("Lớp Vật Lý", &appState.viewMode, 0)) {
                 // Chuyển sang Lớp Vật Lý
             }
             ImGui::SameLine(0, 10.0f);
-            if (ImGui::RadioButton("Lớp Logic (Routing)", &appState.viewMode, 1)) {
+            if (ImGui::RadioButton("Lớp Logic", &appState.viewMode, 1)) {
                 // Chuyển sang Lớp Logic -> Tắt chế độ xem cây khung MST để đường định tuyến không bị đè
                 appState.isMSTActive = false;
             }
@@ -1115,7 +1105,7 @@ int main() {
                     // Hiển thị quy hoạch gốc tính trên baseGraph, không ghi đè cờ isBuilt của workingGraph
                     recordKruskalSteps(baseGraph, pricingModel, appState, /*updateGraphBuildFlags=*/false);
                     appState.currentKruskalStep = static_cast<int>(appState.kruskalHistory.size());
-                    appState.statusMessage = "Chế độ MST: Đã tính toán cây khung (Xanh lá) và cáp dự phòng (Xanh dương).";
+                    appState.statusMessage = "Chế độ MST: Đã tính toán cây khung và cáp dự phòng.";
                 } else {
                     appState.statusMessage = "Đã tắt chế độ xem cây khung MST.";
                 }
@@ -1168,7 +1158,7 @@ int main() {
                 appState.isCutModeActive = !appState.isCutModeActive;
                 if (appState.isCutModeActive) {
                     appState.isRestoreModeActive = false;
-                    appState.statusMessage = "Chế độ Cắt Cáp: Click trực tiếp vào cáp trên Canvas để ngắt kết nối (bấm lại nút để thoát).";
+                    appState.statusMessage = "Chế độ Cắt Cáp: Click trực tiếp vào cáp trên sơ đồ để ngắt kết nối.";
                 } else {
                     appState.statusMessage = "Đã thoát chế độ Cắt Cáp.";
                 }
@@ -1181,7 +1171,7 @@ int main() {
                 appState.isRestoreModeActive = !appState.isRestoreModeActive;
                 if (appState.isRestoreModeActive) {
                     appState.isCutModeActive = false;
-                    appState.statusMessage = "Chế độ Khôi Phục: Click vào cáp đang đứt (màu đỏ) trên Canvas để nối lại (bấm lại nút để thoát).";
+                    appState.statusMessage = "Chế độ Khôi Phục: Click vào cáp đang đứt trên sơ đồ để nối lại.";
                 } else {
                     appState.statusMessage = "Đã thoát chế độ Khôi Phục.";
                 }
@@ -1217,7 +1207,7 @@ int main() {
                 appState.statusMessage = "Đã khôi phục mạng về trạng thái ban đầu và làm mới sơ đồ.";
             }
             if (ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("Khôi phục mạng về trạng thái sạch ban đầu (xóa bản lưu cũ nếu có).");
+                ImGui::SetTooltip("Khôi phục mạng về trạng thái sạch ban đầu.");
             }
             ImGui::SameLine(0, 5.0f);
             std::string drawerBtnLabel = appState.isSidebarOpen ? " Ẩn Bảng [X] " : " Bảng Số Liệu ";
@@ -1365,7 +1355,7 @@ int main() {
                 } else {
                     if (appState.dropByMtu) {
                         ImGui::TextColored(ImVec4(0.85f, 0.18f, 0.18f, 1.0f),
-                            "[DROP - DF_BLOCKED_BY_MTU] Gói %dB vượt MTU (%dB) nhưng bật cờ DF (Cấm phân mảnh)!",
+                            "[DROP - DF_BLOCKED_BY_MTU] Gói %dB vượt MTU %dB nhưng cấm phân mảnh!",
                             activePkt.sizeBytes, appState.dropMtu);
                     } else {
                         ImGui::TextColored(ImVec4(0.85f, 0.18f, 0.18f, 1.0f),
@@ -1395,7 +1385,7 @@ int main() {
                     if (appState.switchTabRequested && appState.requestedTab == 0) {
                         tab1Flags |= ImGuiTabItemFlags_SetSelected;
                     }
-                    if (ImGui::BeginTabItem(" Quy Hoạch Cáp (MST) ", nullptr, tab1Flags)) {
+                    if (ImGui::BeginTabItem(" Quy Hoạch Cáp ", nullptr, tab1Flags)) {
                         appState.sidebarMode = 0;
                         appState.isMSTActive = true;
                         appState.isScenarioActive = false;
@@ -1439,7 +1429,7 @@ int main() {
                             // 2. Cây Khung (MST)
                             ImGui::TableNextRow();
                             ImGui::TableSetColumnIndex(0);
-                            ImGui::TextColored(ImVec4(0.12f, 0.62f, 0.28f, 1.0f), "2. Cây khung (MST)");
+                            ImGui::TextColored(ImVec4(0.12f, 0.62f, 0.28f, 1.0f), "2. Cây khung");
                             ImGui::TableSetColumnIndex(1);
                             if (std::isinf(costMST) || !appState.mstResult.connected) {
                                 ImGui::TextColored(ImVec4(0.85f, 0.2f, 0.2f, 1.0f), "Không khả thi");
@@ -1527,7 +1517,7 @@ int main() {
 
                         // NÚT XUẤT BÁO CÁO QUY HOẠCH CÁP (.TXT) PHỤC VỤ BÁO CÁO PBL2
                         ImGui::Spacing();
-                        if (ImGui::Button(" [Xuất Báo Cáo Quy Hoạch Cáp (.txt)] ", ImVec2(-1.0f, 28.0f))) {
+                        if (ImGui::Button(" [Xuất Báo Cáo Quy Hoạch Cáp] ", ImVec2(-1.0f, 28.0f))) {
                             std::filesystem::create_directories("data");
                             std::ofstream out("data/bao_cao_quy_hoach_mst.txt");
                             if (out.is_open()) {
@@ -1634,11 +1624,11 @@ int main() {
                         }
 
                         ImGui::Separator();
-                        ImGui::TextColored(ImVec4(0.2f, 0.4f, 0.7f, 1.0f), "Danh sách sự kiện (Click để chuyển bước):");
+                        ImGui::TextColored(ImVec4(0.2f, 0.4f, 0.7f, 1.0f), "Danh sách sự kiện:");
                         if (ImGui::BeginChild("ScenarioEvents", ImVec2(0, 340), true)) {
                             if (appState.loadedScenario.events.empty()) {
                                 ImGui::TextColored(ImVec4(0.45f, 0.50f, 0.55f, 1.0f),
-                                    "Kịch bản tĩnh (Không có sự kiện động).");
+                                    "Kịch bản tĩnh.");
                             }
                             for (int i = 0; i < static_cast<int>(appState.loadedScenario.events.size()); ++i) {
                                 const auto& ev = appState.loadedScenario.events[i];
